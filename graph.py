@@ -18,8 +18,8 @@ class GraphElement(object):
     __hash__ = object.__hash__
 
 
-    def __eq__(x, y):
-        return isinstance(x, GraphElement) and isinstance(y, GraphElement) and (x.name == y.name)
+    def __eq__(self, y):
+        return isinstance(self, GraphElement) and isinstance(y, GraphElement) and (self.name == y.name)
 
     def __ne__(self, other):
         return not self == other
@@ -32,6 +32,7 @@ class Node(GraphElement):
 
     def __init__(self, state, value, best_action=None, terminal=False):
         super(Node, self).__init__(state)
+        
         self.value = value  # Q value. This can be vector, if there are multiple cost functions
         self.terminal = terminal  # Terminal flag
         self.state = state
@@ -41,7 +42,14 @@ class Node(GraphElement):
 
         self.parents_set = set()   # set of all parents in the graph
         self.best_parents_set = set()    # set of parents in the best partial explicit graph
-        self.children = dict()     # children dictionary, where key is an action, value is a set of children states
+        self.children = dict()     # children dictionary, where key is an action, value is a set of children nodes with probabilities (nested list, e.g., [[node1,prob1], [node2,prob2]])
+
+
+    def set_terminal(self):
+
+        self.terminal = True
+        self.value = 0
+
 
 
 
@@ -157,7 +165,7 @@ class Graph(GraphElement):
     #             'The root of the hypergraph must be of type RAOStarGraphNode.')
 
 
-    def add_root(self, state, value=None, best_action=None, terminal=None):
+    def add_root(self, state, value=None, best_action=None, terminal=False):
         """Adds a node to the hypergraph."""
         if not state in self.nodes:
             self.nodes[state] = Node(state, value, best_action, terminal)
@@ -167,7 +175,7 @@ class Graph(GraphElement):
             return False
 
     
-    def add_node(self, state, value=None, best_action=None, terminal=None):
+    def add_node(self, state, value=None, best_action=None, terminal=False):
         """Adds a node to the hypergraph."""
         if not state in self.nodes:
             self.nodes[state] = Node(state, value, best_action, terminal)

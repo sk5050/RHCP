@@ -10,7 +10,7 @@ import time
 
 class GRIDModel(object):
 
-    def __init__(self, init_state=(0,0),size=(3,3), constraint_states = [(1,1)], prob_right_transition=0.9, prob_right_observation=0.9):
+    def __init__(self, size=(3,3),init_state=(0,0), goal=(4,4), prob_right_transition=0.9):
 
         # grid with size (x,y): width is x and height is y. index start from 0.
         # example of (3,3)
@@ -22,53 +22,28 @@ class GRIDModel(object):
         # |0,0|1,0|2,0|
         # |___|___|___|
         #
-        # observation is the min(x-goal.x, y-goal.y).
 
         self.init_state=init_state
         self.prob_right_transition = prob_right_transition
-        self.prob_right_observation = prob_right_observation
         self.size = size
         self.state_list = []
-        self.goal = (4,4)  # right upper corner.
-        # self.goal = (9,4)
-        self.obs_list = [0,1,2]        
-        # self.obs_list = [0,1,2]
-        # self.obs_list = [0]
-
-        # self.obs_list = [0,1,2,3,4,5,6,7,8]
+        self.goal = goal
 
         for i in range(size[0]):
             for j in range(size[1]):
                 self.state_list.append((i,j))
 
         self.action_list = ["U","L","R","D"]
-        # self.action_list = ["R","D"]
-        # self.action_list = ["U","L","R","D","UU", "LL", "RR", "DD", "UUU", "LLL",\
-        #                     "RRR","DDD", "UUUU", "LLLL", "RRRR","DDDD","UUUUU","LLLLL","RRRRR","DDDDD","UUUUUU","LLLLLL","RRRRRR","DDDDDD"]
-        # self.action_list = ["U","L","R","D","UU", "LL", "RR", "DD", "UUU", "LLL"]
-        # self.action_list = ["U","L","R","D","UU","LL","RR","DD","UUU","LLL","RRR","DDD"]
-        # self.action_list = ["U","L","R","D","UU","LL","RR","DD","UUU","LLL"]
-        # self.action_list = ["U","L","R","D","UU", "LL", "RR", "DD",\
-        #                     "UUU", "LLL", "RRR","DDD", "UUUU", "LLLL", "RRRR","DDDD","UUUUU","LLLLL","RRRRR","DDDDD"]
 
-
-        self.constraint_states = constraint_states
-        self.anytime_history = []
-        self.anytime_update_time = []
-        self.anytime_update_action = []
-        self.anytime_update_risk = []
-        self.anytime_policy = []
-        self.percentage_history = []
-
-
-        self.optimization = 'minimize'
-
+        
     def actions(self, state):
         return self.action_list
 
+    
     def is_terminal(self, state):
         return state == self.goal
 
+    
     def state_transitions(self, state, action):
         if action=="U":
             new_states_temp = [[(state[0],state[1]+1), self.prob_right_transition],
@@ -90,132 +65,6 @@ class GRIDModel(object):
                                [(state[0],state[1]+1), (1-self.prob_right_transition)/2],
                                [(state[0],state[1]-1), (1-self.prob_right_transition)/2]]
 
-        elif action=="UU":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]+1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)*2/3],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)/3]]
-
-        elif action=="DD":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]-1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)*2/3],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)/3]]
-
-        elif action=="LL":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]-1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)*2/3],
-                               [(state[0],state[1]-1), (1-prob_right_transition)/3]]
-
-        elif action=="RR":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]+1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)*2/3],
-                               [(state[0],state[1]-1), (1-prob_right_transition)/3]]
-
-        elif action=="UUU":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]+1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)/3],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)*2/3]]
-
-        elif action=="DDD":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]-1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)/3],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)*2/3]]
-
-        elif action=="LLL":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]-1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)/3],
-                               [(state[0],state[1]-1), (1-prob_right_transition)*2/3]]
-
-        elif action=="RRR":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]+1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)/3],
-                               [(state[0],state[1]-1), (1-prob_right_transition)*2/3]]
-
-        elif action=="UUUU":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]+1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)*3/4],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)/4]]
-
-        elif action=="DDDD":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]-1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)*3/4],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)/4]]
-
-        elif action=="LLLL":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]-1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)*3/4],
-                               [(state[0],state[1]-1), (1-prob_right_transition)/4]]
-
-        elif action=="RRRR":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]+1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)*3/4],
-                               [(state[0],state[1]-1), (1-prob_right_transition)/4]]
-
-        elif action=="UUUUU":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]+1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)/4],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)*3/4]]
-
-        elif action=="DDDDD":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]-1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)/4],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)*3/4]]
-
-        elif action=="LLLLL":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]-1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)/4],
-                               [(state[0],state[1]-1), (1-prob_right_transition)*3/4]]
-
-        elif action=="RRRRR":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]+1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)/4],
-                               [(state[0],state[1]-1), (1-prob_right_transition)*3/4]]
-
-
-        elif action=="UUUUUU":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0],state[1]+1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)*3/5],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)*2/5]]
-
-        elif action=="DDDDDD":
-            prob_right_transition = self.prob_right_transition - 0.21
-            new_states_temp = [[(state[0],state[1]-1), prob_right_transition],
-                               [(state[0]+1,state[1]), (1-prob_right_transition)*3/5],
-                               [(state[0]-1,state[1]), (1-prob_right_transition)*2/5]]
-
-        elif action=="LLLLLL":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]-1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)*3/5],
-                               [(state[0],state[1]-1), (1-prob_right_transition)*2/5]]
-
-        elif action=="RRRRRR":
-            prob_right_transition = self.prob_right_transition
-            new_states_temp = [[(state[0]+1,state[1]), prob_right_transition],
-                               [(state[0],state[1]+1), (1-prob_right_transition)*3/5],
-                               [(state[0],state[1]-1), (1-prob_right_transition)*2/5]]
-            
-        elif action=="S":
-            prob_right_transition = self.prob_right_transition - 0.05
-            new_states_temp = [[(state[0],state[1]), 1.0]]
-            
-
         prob_stay = 0
         new_states = []
         for new_state in new_states_temp:
@@ -229,216 +78,11 @@ class GRIDModel(object):
 
         return new_states
 
-    # def observations(self, state):
 
-    #     # if (state[0]==0 and (state[1]==0 or state[1]==self.size[1]-1)) or (state[0]==self.size[0]-1 and (state[1]==0 or state[1]==self.size[1]-1)):
-    #     #     right_obs = 2
-
-    #     # elif state[0]==0 or state[0]==self.size[0]-1 or state[1]==0 or state[1]==self.size[1]-1:
-    #     #     right_obs = 1
-
-    #     # else:
-    #     #     right_obs = 0
-
-    #     right_obs = 0
-
-    #     obs_dist = []
-
-    #     # for obs in self.obs_list:
-    #     #     if obs==right_obs:
-    #     #         obs_dist.append((obs, self.prob_right_observation))
-    #     #     else:
-    #     #         obs_dist.append((obs, (1-self.prob_right_observation)/(len(self.obs_list)-1)))
-
-    #     obs_dist.append((right_obs,1.0))
-    #     return obs_dist
-
-
-
-    # def observations(self, state):
-
-    #     if (state[0]==0 and (state[1]==0 or state[1]==self.size[1]-1)) or (state[0]==self.size[0]-1 and (state[1]==0 or state[1]==self.size[1]-1)):
-    #         right_obs = 2
-
-    #     elif state[0]==0 or state[0]==self.size[0]-1 or state[1]==0 or state[1]==self.size[1]-1:
-    #         right_obs = 1
-
-    #     else:
-    #         right_obs = 0
-
-    #     # right_obs = 0
-
-    #     obs_dist = []
-
-    #     for obs in self.obs_list:
-    #         if obs==right_obs:
-    #             obs_dist.append((obs, self.prob_right_observation))
-    #         else:
-    #             obs_dist.append((obs, (1-self.prob_right_observation)/(len(self.obs_list)-1)))
-
-    #     # obs_dist.append((right_obs,1.0))
-
-    #     return obs_dist
-
-    # def observations(self, state, action=None):
-    #     if True:
-    #         return [(state, 1.0)]
-    
-
-    def observations(self, state,action=None):
-
-        if (state[0]==0 and (state[1]==0 or state[1]==self.size[1]-1)) or (state[0]==self.size[0]-1 and (state[1]==0 or state[1]==self.size[1]-1)):
-            right_obs = 2
-
-        elif state[0]==0 or state[0]==self.size[0]-1 or state[1]==0 or state[1]==self.size[1]-1:
-            right_obs = 1
-
-        else:
-            right_obs = 0
-
-        # right_obs = 0
-
-        obs_dist = []
-
-        for obs in self.obs_list:
-            if obs==right_obs:
-                obs_dist.append((obs, self.prob_right_observation))
-            else:
-                obs_dist.append((obs, (1-self.prob_right_observation)/(len(self.obs_list)-1)))
-
-        # obs_dist.append((right_obs,1.0))
-
-        return obs_dist
-
-
-    # def observations(self, state):
-
-    #     obs_dist = [(0,0.3), (1,0.3), (2,0.4)]
-    #     # if (state[0]==0 and (state[1]==0 or state[1]==self.size[1]-1)):
-    #     #     right_obs = 3
-
-    #     # elif (state[0]==self.size[0]-1 and (state[1]==0 or state[1]==self.size[1]-1)):
-    #     #     right_obs = 2
-
-    #     # elif state[0]==0 or state[0]==self.size[0]-1 or state[1]==0 or state[1]==self.size[1]-1:
-    #     #     right_obs = 1
-
-    #     # else:
-    #     #     right_obs = 0
-
-    #     # # right_obs = 0
-
-    #     # obs_dist = []
-
-    #     # for obs in self.obs_list:
-    #     #     if obs==right_obs:
-    #     #         obs_dist.append((obs, self.prob_right_observation))
-    #     #     else:
-    #     #         obs_dist.append((obs, (1-self.prob_right_observation)/(len(self.obs_list)-1)))
-
-    #     # print(obs_dist)
-    #     # raise ValueError(111)
-    #     # obs_dist.append((right_obs,1.0))
-    #     return obs_dist
-
-
-    # def observations(self, state):
-    #     return [(state, 1.0)] # deterministic for now
-
-    # def observations(self, state):
-    #
-    #     right_obs = state[0]
-    #
-    #     obs_dist = []
-    #
-    #     for obs in self.obs_list:
-    #         if obs==right_obs:
-    #             obs_dist.append((obs, self.prob_right_observation))
-    #         else:
-    #             obs_dist.append((obs, (1-self.prob_right_observation)/(len(self.obs_list)-1)))
-    #
-    #     obs_dist = [(state, 1.0)]
-    #     return obs_dist
-
-
-
-    # def observations(self, state):
-    
-    #     if state[0]>= 0 and state[0]<=1 and state[1]>=0 and state[1]<=1:
-    #         right_obs = 0
-    
-    #     elif state[0]>= 2 and state[0]<=3 and state[1]>=0 and state[1]<=1:
-    #         right_obs = 1
-    
-    #     elif state[0]>= 4 and state[0]<=5 and state[1]>=0 and state[1]<=1:
-    #         right_obs = 2
-    
-    #     elif state[0]>= 0 and state[0]<=1 and state[1]>=2 and state[1]<=3:
-    #         right_obs = 3
-    
-    #     elif state[0]>= 2 and state[0]<=3 and state[1]>=2 and state[1]<=3:
-    #         right_obs = 4
-    
-    #     elif state[0]>= 4 and state[0]<=5 and state[1]>=2 and state[1]<=3:
-    #         right_obs = 5
-    
-    #     elif state[0]>= 0 and state[0]<=1 and state[1]>=4 and state[1]<=5:
-    #         right_obs = 6
-    
-    #     elif state[0]>= 2 and state[0]<=3 and state[1]>=4 and state[1]<=5:
-    #         right_obs = 7
-    
-    #     elif state[0]>= 4 and state[0]<=5 and state[1]>=4 and state[1]<=5:
-    #         right_obs = 8
-    
-    
-    #     obs_dist = []
-    
-    #     for obs in self.obs_list:
-    #         if obs==right_obs:
-    #             obs_dist.append((obs, self.prob_right_observation))
-    #         else:
-    #             obs_dist.append((obs, (1-self.prob_right_observation)/(len(self.obs_list)-1)))
-    
-    #     return obs_dist
-
-
-
-    def state_risk(self, state):
-        if state in self.constraint_states:
-            return 1.0
-        else:
-            return 0.0
-
-    def values(self,state,action):
+    def cost(self,state,action):
         return 1.0
 
+    
     def heuristic(self, state,depth=None):
         return math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
 
-    def execution_risk_heuristic(self, state):
-        return 0
-
-
-    # def simulate_transition(self, state, best_action):
-    #     state_distribution_set = self.state_transitions(state, best_action)
-    #     states = []
-    #     dist = []
-    #     for i in state_distribution_set:
-    #         states.append(i[0])
-    #         dist.append(i[1])
-    #     choices = range(len(states))
-    #     choice = np.random.choice(choices, 1, p=dist)[0]
-    #     return states[choice]
-
-    # def simulate_observation(self, state):
-    #     obs_distribution_set = self.observations(state)
-    #     obs = []
-    #     dist = []
-    #     for i in obs_distribution_set:
-    #         obs.append(i[0])
-    #         dist.append(i[1])
-
-    #     choices = range(len(obs))
-    #     choice = np.random.choice(choices, 1, p=dist)[0]
-    #     return obs[choice]
