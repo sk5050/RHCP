@@ -113,9 +113,8 @@ class LAOStar(object):
 
 
 
-    def value_iteration(self, Z, epsilon=1e-3, max_iter=10000):#float('inf')):
+    def value_iteration(self, Z, epsilon=1e-20, max_iter=10000):#float('inf')):
 
-        print(len(Z))
         iter=0
 
         V_prev = dict()
@@ -169,6 +168,9 @@ class LAOStar(object):
 
     def update_best_partial_graph(self, Z, V_new):
 
+        for state,node in self.graph.nodes.items():
+            node.best_parents_set = set()
+        
         visited = set()
         queue = set([self.graph.root])
 
