@@ -25,4 +25,8 @@ if __name__ == '__main__':
     algo = LAOStar(model)
 
     
-    algo.solve()
+    policy = algo.solve()
+
+    model.print_policy(policy)
+
+    

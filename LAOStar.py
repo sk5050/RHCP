@@ -45,6 +45,7 @@ class LAOStar(object):
             #     if self.convergence_test():
             #         return True
             #     else:
+            #         raise ValueError(123)
             #         self.update_fringe()
 
             return True
@@ -96,6 +97,17 @@ class LAOStar(object):
 
 
 
+    def convergence_test(self):
+
+        Z = self.get_best_solution_nodes()
+
+        return self.value_iteration(Z,return_on_policy_change=True)
+
+
+    def get_best_solution_nodes(self):
+        policy = self.extract_policy()
+        return list(policy.keys())
+
 
     def get_ancestors(self, expanded_node):
         Z = []
@@ -139,7 +151,7 @@ class LAOStar(object):
         return weighted_cost
     
 
-    def value_iteration(self, Z, epsilon=1e-300, max_iter=100000):#float('inf')):
+    def value_iteration(self, Z, epsilon=1e-30, max_iter=1000000,return_on_policy_change=False):
 
         iter=0
 
@@ -160,6 +172,9 @@ class LAOStar(object):
                     min_value = [float('inf')]*(len(self.bounds)+1)
                     weighted_min_value = float('inf')
 
+                    prev_best_action = node.best_action
+                    # best_action = None
+
                     for action in actions:
 
                         new_value = self.compute_value(node,action)
@@ -167,6 +182,7 @@ class LAOStar(object):
                         if self.constrained==False:  # simple SSP case
                             if new_value[0] < min_value[0]:
                                 min_value = new_value
+                                # best_action = action
 
                         else:
                             if self.Lagrangian==False:
@@ -177,8 +193,12 @@ class LAOStar(object):
                                 if weighted_value < weighted_min_value:
                                     min_value = new_value
                                     weighted_min_value = weighted_value
+                                    # best_action = action
 
                     V_new[node.state] = min_value
+                    # if return_on_policy_change==True:
+                    #     if prev_best_action != best_action:
+                    #         return False
 
             for node in Z:
                 if node.terminal==False:
@@ -201,9 +221,11 @@ class LAOStar(object):
         else:
             diff = []
             for state in V_prev:
+               
                 weighted_V_prev = self.compute_weighted_value(V_prev[state])
                 weighted_V_new = self.compute_weighted_value(V_new[state])
                 diff.append(abs(weighted_V_prev - weighted_V_new))
+
 
             error = max(diff)
 
