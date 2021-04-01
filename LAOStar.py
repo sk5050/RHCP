@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
 import sys
+from utils import *
 from graph import Node, Graph
 
 
 class LAOStar(object):
 
-    def __init__(self, model, method='VI', lb=None, ub=None, alpha=0.0):
+    def __init__(self, model, constrained=False, method='VI', bounds=[], alpha=[], Lagrangian=False):
 
         self.model = model
+        self.constrained = constrained
         self.method = method
-        self.lb = lb
-        self.ub = ub
+        self.bounds = bounds
         self.alpha = alpha
+        self.Lagrangian=Lagrangian
         
         self.graph = Graph(name='G')
         self.graph.add_root(model.init_state, value=self.model.heuristic(model.init_state))
@@ -28,9 +30,11 @@ class LAOStar(object):
             self.update_values_and_graph(expanded_node)
             self.update_fringe()
 
-        print(len(self.graph.nodes))
-        self.print_policy()
-        print(self.graph.root.value)
+        # print(len(self.graph.nodes))
+        # self.print_policy()
+        # print(self.graph.root.value)
+
+        return self.extract_policy()
 
     def is_termination(self):
 
@@ -111,9 +115,31 @@ class LAOStar(object):
         return Z
             
 
+    def compute_value(self,node,action):
+
+        cost_vector = self.model.cost(node.state,action)
+
+        value = cost_vector
+
+        for child, child_prob in node.children[action]:
+
+            value = ptw_add(value, scalar_mul(child.value,child_prob))
+
+        return value
 
 
-    def value_iteration(self, Z, epsilon=1e-20, max_iter=10000):#float('inf')):
+    def compute_weighted_value(self,value):
+
+        primary_cost = value[0]
+        secondary_costs = value[1:]
+    
+        # weighted_cost = primary_cost + dot(self.alpha, ptw_sub(secondary_costs, self.bounds))
+        weighted_cost = primary_cost + dot(self.alpha, secondary_costs)
+
+        return weighted_cost
+    
+
+    def value_iteration(self, Z, epsilon=1e-300, max_iter=100000):#float('inf')):
 
         iter=0
 
@@ -122,7 +148,7 @@ class LAOStar(object):
         for node in Z:
             if node.terminal==False:
                 V_prev[node.state] = node.value
-                V_new[node.state] = float('inf')
+                V_new[node.state] = [float('inf')]*(len(self.bounds)+1)
 
 
         while not self.VI_convergence_test(V_prev,V_new,epsilon):
@@ -131,15 +157,26 @@ class LAOStar(object):
                     V_prev[node.state] = node.value
 
                     actions = self.model.actions(node.state)
-                    min_value = float('inf')
+                    min_value = [float('inf')]*(len(self.bounds)+1)
+                    weighted_min_value = float('inf')
 
                     for action in actions:
-                        new_value = self.model.cost(node.state,action) + \
-                            sum(child.value*child_prob for child,child_prob \
-                                        in node.children[action])
 
-                        if new_value < min_value:
-                            min_value = new_value
+                        new_value = self.compute_value(node,action)
+
+                        if self.constrained==False:  # simple SSP case
+                            if new_value[0] < min_value[0]:
+                                min_value = new_value
+
+                        else:
+                            if self.Lagrangian==False:
+                                raise ValueError("need to be implemented for constrained case.")
+                            else:
+                                weighted_value = self.compute_weighted_value(new_value)
+
+                                if weighted_value < weighted_min_value:
+                                    min_value = new_value
+                                    weighted_min_value = weighted_value
 
                     V_new[node.state] = min_value
 
@@ -159,8 +196,18 @@ class LAOStar(object):
     def VI_convergence_test(self,V_prev,V_new,epsilon):
         # might need more fast implementation. Numpy is better, but I am considering using pypy
 
-        error = max([abs(V_prev[state]-V_new.get(state,0)) for state in V_prev])
+        if self.constrained==False:
+            error = max([abs(V_prev[state][0]-V_new.get(state,0)[0]) for state in V_prev])
+        else:
+            diff = []
+            for state in V_prev:
+                weighted_V_prev = self.compute_weighted_value(V_prev[state])
+                weighted_V_new = self.compute_weighted_value(V_new[state])
+                diff.append(abs(weighted_V_prev - weighted_V_new))
 
+            error = max(diff)
+
+        
         if error < epsilon:
             return True
         else:
@@ -185,14 +232,27 @@ class LAOStar(object):
                 if node.children!=dict():
 
                     actions = self.model.actions(node.state)
-                    min_value = float('inf')
+                    min_value = [float('inf')]*(len(self.bounds)+1)
+                    weighted_min_value = float('inf')
+                    
                     for action in actions:
-                        new_value = self.model.cost(node.state,action) + \
-                            sum(child.value*child_prob for child,child_prob \
-                                        in node.children[action])
-                        if new_value < min_value:
-                            node.best_action = action
-                            min_value = new_value
+                        new_value = self.compute_value(node,action)
+
+                        if self.constrained==False:
+                            if new_value[0] < min_value[0]:
+                                node.best_action = action
+                                min_value = new_value
+
+                        else:
+                            if self.Lagrangian==False:
+                                raise ValueError("need to be implemented for constrained case.")
+                            else:
+                                weighted_value = self.compute_weighted_value(new_value)
+
+                                if weighted_value < weighted_min_value:
+                                    node.best_action = action
+                                    min_value = new_value
+                                    weighted_min_value = weighted_value
 
                     node.value = min_value
                     children = node.children[node.best_action]
@@ -203,29 +263,7 @@ class LAOStar(object):
 
             visited.add(node)
 
-        
 
-        # for state,node in self.graph.nodes.items():
-
-        #     if node.best_action!=None and node.terminal==False:
-
-        #         actions = self.model.actions(node.state)
-        #         min_value = float('inf')
-        #         for action in actions:
-        #             new_value = self.model.cost(node.state,action) + \
-        #                 sum(child.value*child_prob for child,child_prob \
-        #                             in node.children[action])
-        #             if new_value < min_value:
-        #                 node.best_action = action
-        #                 min_value = new_value
-
-        #         best_children = node.children[node.best_action]
-
-        #         for child,child_prob in best_children:
-        #             if child in visited:
-        #                 child.best_parents_set.add(node)
-        #             else:
-        #                 child.best_parents_set = set([node])
 
 
 

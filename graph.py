@@ -48,7 +48,8 @@ class Node(GraphElement):
     def set_terminal(self):
 
         self.terminal = True
-        self.value = 0
+        for i in range(len(self.value)):
+            self.value[i] = 0
 
 
 

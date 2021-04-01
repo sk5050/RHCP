@@ -20,6 +20,9 @@ if __name__ == '__main__':
 
     # model = LAOModel()
 
+    # algo = LAOStar(model)
+
     algo = LAOStar(model)
 
+    
     algo.solve()

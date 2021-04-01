@@ -1,0 +1,4 @@
+def dot(v1,v2):
+    if len(v1)!=len(v2):
+        raise ValueError("length of two vectors does not match.")
+    return sum(x*y for x,y in zip(v1,v2))
