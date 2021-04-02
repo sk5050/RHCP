@@ -31,12 +31,12 @@ if __name__ == '__main__':
 
     # algo = LAOStar(model)
 
-    alpha_list = list(linspace(0,100,100))
+    alpha_list = list(linspace(0,0.6,100))
 
     # alpha_list = [200]
     weighted_value_list = []
 
-    bound = 10
+    bound = 2
 
     for a in alpha_list:
 

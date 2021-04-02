@@ -103,8 +103,8 @@ class GRIDModel(object):
 
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
-        if state==(0,4) or state==(2,2):
-            cost2 = 1.0
+        if state==(0,4) or state==(2,2) or state==(3,4):
+            cost2 = 50.0
         else:
             cost2 = 0.0
         return [cost1, cost2]
@@ -113,8 +113,8 @@ class GRIDModel(object):
     def heuristic(self, state,depth=None):
         heuristic1 = math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
 
-        if state==(0,4) or state==(2,2):
-            heuristic2 = 1
+        if state==(0,4) or state==(2,2) or state==(3,4):
+            heuristic2 = 50.0
         else:
             heuristic2 = 0
         return [heuristic1, heuristic2]
