@@ -22,6 +22,8 @@ class LAOStar(object):
         self.fringe = {self.graph.root}
 
 
+        self.debug_k = 0
+
     def solve(self):
 
         while not self.is_termination():
@@ -30,10 +32,13 @@ class LAOStar(object):
             self.update_values_and_graph(expanded_node)
             self.update_fringe()
 
+            self.debug_k += 1
+
         # print(len(self.graph.nodes))
         # self.print_policy()
         # print(self.graph.root.value)
 
+        # print(self.debug_k)
         return self.extract_policy()
 
     def is_termination(self):
@@ -41,12 +46,18 @@ class LAOStar(object):
         if self.fringe:
             return False
         else:
-            # if self.method=='VI':
-            #     if self.convergence_test():
-            #         return True
-            #     else:
-            #         raise ValueError(123)
-            #         self.update_fringe()
+            if self.method=='VI':
+                if self.convergence_test():
+                    return True
+                else:
+                    while True:
+                        if self.convergence_test():
+                            return True
+                        self.update_best_partial_graph(None,None)
+                        self.update_fringe()
+
+                        if self.fringe:
+                            return False
 
             return True
 
@@ -82,10 +93,12 @@ class LAOStar(object):
 
     def update_values_and_graph(self, expanded_node):
 
+
         Z = self.get_ancestors(expanded_node)
 
-
         if self.method=='VI':
+            # if self.debug_k==15:
+            #     print(expanded_node.state)
             V_new = self.value_iteration(Z)
 
         elif self.method=='PI':
@@ -106,7 +119,12 @@ class LAOStar(object):
 
     def get_best_solution_nodes(self):
         policy = self.extract_policy()
-        return list(policy.keys())
+        Z = []
+        for state in list(policy.keys()):
+            Z.append(self.graph.nodes[state])
+
+        return Z
+            
 
 
     def get_ancestors(self, expanded_node):
@@ -151,7 +169,12 @@ class LAOStar(object):
         return weighted_cost
     
 
-    def value_iteration(self, Z, epsilon=1e-30, max_iter=1000000,return_on_policy_change=False):
+    def value_iteration(self, Z, epsilon=1e-30, max_iter=100000,return_on_policy_change=False):
+
+        # if self.debug_k==15:
+        #     for z in Z:
+        #         print(z.state)
+        #     print(len(Z))
 
         iter=0
 
@@ -173,7 +196,7 @@ class LAOStar(object):
                     weighted_min_value = float('inf')
 
                     prev_best_action = node.best_action
-                    # best_action = None
+                    best_action = None
 
                     for action in actions:
 
@@ -182,7 +205,7 @@ class LAOStar(object):
                         if self.constrained==False:  # simple SSP case
                             if new_value[0] < min_value[0]:
                                 min_value = new_value
-                                # best_action = action
+                                best_action = action
 
                         else:
                             if self.Lagrangian==False:
@@ -193,12 +216,12 @@ class LAOStar(object):
                                 if weighted_value < weighted_min_value:
                                     min_value = new_value
                                     weighted_min_value = weighted_value
-                                    # best_action = action
+                                    best_action = action
 
                     V_new[node.state] = min_value
-                    # if return_on_policy_change==True:
-                    #     if prev_best_action != best_action:
-                    #         return False
+                    if return_on_policy_change==True:
+                        if prev_best_action != best_action:
+                            return False
 
             for node in Z:
                 if node.terminal==False:
@@ -303,7 +326,7 @@ class LAOStar(object):
                 continue
 
             else:
-                if node.best_action!=None:  # if this node has not been expanded
+                if node.best_action!=None:  # if this node has been expanded
                     children = node.children[node.best_action]
 
                     for child,child_prob in children:
@@ -316,7 +339,10 @@ class LAOStar(object):
 
         self.fringe = fringe
 
-        
+        # if self.debug_k==14:
+        #     for i in self.fringe:
+        #         print(i.state)
+        # print(self.graph.nodes[(1,0)].best_action)
 
     def extract_policy(self):
 

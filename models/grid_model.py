@@ -101,32 +101,9 @@ class GRIDModel(object):
 
 
 
-    # def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
-    #     cost1 = 1.0
-    #     if state[1]==(0,4):
-    #         cost2 = 1.0
-    #     else:
-    #         cost2 = 0.0
-    #     return [cost1, cost2]
-
-    
-    # def heuristic(self, state,depth=None):
-    #     heuristic1 = math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
-
-    #     if state==(0,4):
-    #         heuristic2 = 1
-    #     else:
-    #         heuristic2 = 0
-    #     return [heuristic1, heuristic2]
-
-
-
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
-        if state[1]>=3:
-            cost1 = 1000000.0
-        else:
-            cost1 = 1.0
-        if state[1]>=3:
+        cost1 = 1.0
+        if state==(0,4) or state==(2,2):
             cost2 = 1.0
         else:
             cost2 = 0.0
@@ -136,13 +113,36 @@ class GRIDModel(object):
     def heuristic(self, state,depth=None):
         heuristic1 = math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
 
-        if state==(0,3) or state==(1,3) or state==(2,3) or state==(3,3) or state==(2,4):
-            heuristic2 = 2
-        elif state==(0,4) or state==(1,4):
-            heuristic2 = 3
-        else:
+        if state==(0,4) or state==(2,2):
             heuristic2 = 1
+        else:
+            heuristic2 = 0
         return [heuristic1, heuristic2]
+
+
+
+    # def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
+    #     if state[1]>=3:
+    #         cost1 = 1000000.0
+    #     else:
+    #         cost1 = 1.0
+    #     if state[1]>=3:
+    #         cost2 = 1.0
+    #     else:
+    #         cost2 = 0.0
+    #     return [cost1, cost2]
+
+    
+    # def heuristic(self, state,depth=None):
+    #     heuristic1 = math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
+
+    #     if state==(0,3) or state==(1,3) or state==(2,3) or state==(3,3) or state==(2,4):
+    #         heuristic2 = 2
+    #     elif state==(0,4) or state==(1,4):
+    #         heuristic2 = 3
+    #     else:
+    #         heuristic2 = 1
+    #     return [heuristic1, heuristic2]
 
 
     def print_policy(self,policy):

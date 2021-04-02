@@ -31,12 +31,12 @@ if __name__ == '__main__':
 
     # algo = LAOStar(model)
 
-    alpha_list = list(linspace(0,10000,30))
+    alpha_list = list(linspace(0,100,100))
 
-    alpha_list = [200]
+    # alpha_list = [200]
     weighted_value_list = []
 
-    bound = 2
+    bound = 10
 
     for a in alpha_list:
 
@@ -52,10 +52,10 @@ if __name__ == '__main__':
         model.print_policy(policy)
 
 
-    print(algo.compute_value(algo.graph.nodes[(4,2)],'D'))
-    print(algo.compute_value(algo.graph.nodes[(4,2)],'U'))
-    print(algo.compute_value(algo.graph.nodes[(4,2)],'R'))
-    print(algo.compute_value(algo.graph.nodes[(4,2)],'L'))
+    # print(algo.compute_value(algo.graph.nodes[(4,2)],'D'))
+    # print(algo.compute_value(algo.graph.nodes[(4,2)],'U'))
+    # print(algo.compute_value(algo.graph.nodes[(4,2)],'R'))
+    # print(algo.compute_value(algo.graph.nodes[(4,2)],'L'))
 
 
         
