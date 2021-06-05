@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import time
 from utils import *
 from graph import Node, Graph
 from LAOStar import LAOStar
@@ -22,8 +23,10 @@ class CSSPSolver(object):
         self.find_dual(LAOStar_method)
         # self.anytime_update()
 
-
+ 
     def find_dual(self, LAOStar_method):
+
+        start_time = time.time()
 
         ##### phase 1
         # zero case
@@ -37,10 +40,8 @@ class CSSPSolver(object):
 
         
         # infinite case
-        self.algo = LAOStar(self.model,constrained=True,bounds=self.bounds,Lagrangian=True)
-        self.algo.alpha = [10**5]
+        self.resolve_LAOStar([10**5])
 
-        policy = self.algo.solve()
         value = self.algo.graph.root.value
         
         f_minus = value[0]
@@ -57,10 +58,8 @@ class CSSPSolver(object):
 
            
             # evaluate L(u), f, g
-            self.algo = LAOStar(self.model,constrained=True,bounds=self.bounds,Lagrangian=True)
-            self.algo.alpha = [alpha]
+            self.resolve_LAOStar([alpha])
 
-            policy = self.algo.solve()
             value = self.algo.graph.root.value
 
             L_u = value[0] + alpha*(value[1] - self.bounds[0])
@@ -111,3 +110,13 @@ class CSSPSolver(object):
             print("     L: "+str(L))
             print("     f: "+str(f))
             print("     g: "+str(g))
+           
+            print("elapsed time: "+str(time.time()-start_time))
+
+
+    def resolve_LAOStar(self, new_alpha):
+        self.algo.alpha = new_alpha
+        nodes = list(self.algo.graph.nodes.values())
+        self.algo.value_iteration(nodes)
+        self.algo.update_fringe()
+        self.algo.solve()

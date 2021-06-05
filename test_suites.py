@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 import sys
+from utils import import_models
+import_models()
 
 from graph import Node, Graph
 from LAOStar import LAOStar
 from CSSPSolver import CSSPSolver
-from models.grid_model import GRIDModel
-from models.LAO_paper_model import LAOModel
+from grid_model import GRIDModel
+from LAO_paper_model import LAOModel
 import matplotlib.pyplot as plt
 import time
 
@@ -37,7 +39,7 @@ def draw_lower_envelop():
     # alpha_list = [200]
     weighted_value_list = []
 
-    bound = 2
+    bound = 1.5
 
     for a in alpha_list:
 
@@ -68,7 +70,9 @@ def draw_lower_envelop():
     print(weighted_value_list)
         
     plt.plot(alpha_list, weighted_value_list,'*')
-    plt.plot(0.05775379446627887, 9.357673380261254, 'r*')
+    # plt.plot(0.05775379446627887, 9.357673380261254, 'r*') # with bound = 2
+    # plt.plot(0.013834705882, 9.3420861953, 'r*')  # with bound = 3
+    plt.plot(0.15374170009084218, 9.42260840432311, 'r*')  # with bound = 1.5
 
 
     plt.show()
@@ -82,7 +86,7 @@ def test_dual_alg():
     goal = (4,4)
     model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
 
-    bound = 2
+    bound = 1.5
 
     cssp_solver = CSSPSolver(model, bounds=[bound])
 

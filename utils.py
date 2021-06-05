@@ -1,3 +1,5 @@
+import os
+import sys
 import operator
 
 multiadd = lambda a,b: map(operator.add, a,b)
@@ -19,3 +21,9 @@ def dot(v1,v2):
     if len(v1)!=len(v2):
         raise ValueError("length of two vectors does not match.")
     return sum(x*y for x,y in zip(v1,v2))
+
+
+
+
+def import_models():
+    sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/models/')
