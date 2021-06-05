@@ -169,7 +169,7 @@ class LAOStar(object):
         return weighted_cost
     
 
-    def value_iteration(self, Z, epsilon=1e-30, max_iter=100000,return_on_policy_change=False):
+    def value_iteration(self, Z, epsilon=1e-50, max_iter=10000,return_on_policy_change=False):
 
         # if self.debug_k==15:
         #     for z in Z:
