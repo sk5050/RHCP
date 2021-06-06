@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import time
 from utils import *
 from graph import Node, Graph
 
@@ -34,6 +35,9 @@ class LAOStar(object):
 
             self.debug_k += 1
 
+            # if self.compute_weighted_value(self.graph.root.value) < -10000:
+            #     return None
+
         # print(len(self.graph.nodes))
         # self.print_policy()
         # print(self.graph.root.value)
@@ -50,14 +54,28 @@ class LAOStar(object):
                 if self.convergence_test():
                     return True
                 else:
-                    while True:
+                    
+                    while True:                        
+
+                        # prev_weighted_value = self.compute_weighted_value(self.graph.root.value)
+                        
                         if self.convergence_test():
                             return True
                         self.update_best_partial_graph(None,None)
                         self.update_fringe()
 
+                        # new_weighted_value = self.compute_weighted_value(self.graph.root.value)
+
                         if self.fringe:
                             return False
+                        # else:
+                        #     if new_weighted_value < -100:
+                        #         return True
+                        #     print(prev_weighted_value)
+                        #     print(new_weighted_value)
+                            # if abs(prev_weighted_value - new_weighted_value) < 0.1**10:
+                            #     return True
+
 
             return True
 
@@ -162,14 +180,14 @@ class LAOStar(object):
 
         primary_cost = value[0]
         secondary_costs = value[1:]
-    
+
         # weighted_cost = primary_cost + dot(self.alpha, ptw_sub(secondary_costs, self.bounds))
         weighted_cost = primary_cost + dot(self.alpha, secondary_costs)
 
         return weighted_cost
     
 
-    def value_iteration(self, Z, epsilon=1e-50, max_iter=10000,return_on_policy_change=False):
+    def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
 
         # if self.debug_k==15:
         #     for z in Z:

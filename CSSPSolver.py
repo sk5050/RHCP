@@ -38,6 +38,8 @@ class CSSPSolver(object):
         f_plus = value[0]
         g_plus = value[1] - self.bounds[0]
 
+        print(time.time() - start_time)
+
         
         # infinite case
         self.resolve_LAOStar([10**5])
@@ -46,6 +48,8 @@ class CSSPSolver(object):
         
         f_minus = value[0]
         g_minus = value[1] - self.bounds[0]
+
+        print(time.time() - start_time)
 
         
         # phase 1 interation to compute alpha
@@ -59,6 +63,8 @@ class CSSPSolver(object):
            
             # evaluate L(u), f, g
             self.resolve_LAOStar([alpha])
+
+            print(time.time() - start_time)
 
             value = self.algo.graph.root.value
 
