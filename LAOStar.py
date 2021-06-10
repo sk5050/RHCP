@@ -35,8 +35,8 @@ class LAOStar(object):
 
             self.debug_k += 1
 
-            # if self.compute_weighted_value(self.graph.root.value) < -10000:
-            #     return None
+            if self.compute_weighted_value(self.graph.root.value) < -100:
+                return None
 
         # print(len(self.graph.nodes))
         # self.print_policy()

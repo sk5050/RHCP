@@ -120,6 +120,9 @@ def draw_lower_envelop_multiple_bounds():
 
     alpha_1_range = list(linspace(0.0,100,20))
     alpha_2_range = list(linspace(0.0,20,20))
+    # alpha_1_range = [46.355221667242965]
+    # alpha_2_range = [4.325548069037225]
+
     # alpha_2_range = [20]
 
     alpha_1_list = []
@@ -180,8 +183,8 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
 
     # algo = LAOStar(model)
 
-    alpha_1_range = list(linspace(0.0,100,20))
-    alpha_2_range = list(linspace(0.0,20,20))
+    alpha_1_range = list(linspace(0.01,1.0,15))
+    alpha_2_range = list(linspace(0.01,0.3,15))
     # alpha_2_range = [20]
 
     alpha_1_list = []
@@ -189,7 +192,7 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
     weighted_value_list = []
 
     # bounds = [0.5, -0.2]
-    bounds = [1.5, -0.5]
+    bounds = [1.5, -0.9]
 
     for a_1 in alpha_1_range:
         for a_2 in alpha_2_range:
@@ -207,8 +210,9 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
             #     policy = algo.solve()
 
             if policy == None:
-                weighted_value = -10000
-                weighted_Value_list.append(weighted_value)
+                weighted_value = -200
+                weighted_value_list.append(weighted_value)
+                print("seems unbounded below")
 
             else:
                 
@@ -216,6 +220,24 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
                 weighted_value = value[0] + a_1*(value[1] - bounds[0]) + a_2*(value[2] - bounds[1])
                 weighted_value_list.append(weighted_value)
 
+
+
+    # min_val = 100000000
+    # max_val = -10000000
+    # for v in weighted_value_list:
+    #     if v==-200:
+    #         continue
+    #     if v < min_val:
+    #         min_val = v
+    #     if v > max_val:
+    #         max_val = v
+
+    # diff = max_val - min_val
+
+    # for i in range(len(weighted_value_list)):
+    #     if weighted_value_list[i]<0:
+    #         weighted_value_list[i] = 8.2
+            
 
     print(alpha_1_list)
     print(alpha_2_list)
@@ -226,6 +248,7 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
     
     plt.plot(alpha_1_list,alpha_2_list, weighted_value_list,'*')
     # plt.plot(0.15374170009084218, 9.42260840432311, 'r*')  # with bound = 1.5
+    ax.axes.set_zlim3d(bottom=9.0, top=9.4) 
 
     plt.show()
 
@@ -237,7 +260,7 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
 
 def test_dual_alg():
     init_state = (0,0)
-    size = (30,30)
+    size = (5,5)
     goal = (4,4)
     model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
 
@@ -245,7 +268,7 @@ def test_dual_alg():
 
     cssp_solver = CSSPSolver(model, bounds=[bound])
 
-    cssp_solver.solve()
+    cssp_solver.solve([[0,0.6]])
 
     policy = cssp_solver.algo.extract_policy()
 
@@ -253,14 +276,33 @@ def test_dual_alg():
 
 
 
+def test_dual_alg_multiple_bounds():
+    init_state = (0,0)
+    size = (5,5)
+    goal = (4,4)
+    model = GRIDModel_multiple_bounds(size, init_state, goal, prob_right_transition=0.85)
+    
 
+    bounds = [1.5, 10]
+
+    cssp_solver = CSSPSolver(model, bounds=bounds)
+
+    cssp_solver.solve([[2,100],[0,20]])
+
+    policy = cssp_solver.algo.extract_policy()
+
+    model.print_policy(policy)
+
+    
     
 
 
 # draw_lower_envelop()
 # test_dual_alg()
+test_dual_alg_multiple_bounds()
 # test_LAOStar()
-draw_lower_envelop_multiple_bounds()
+# draw_lower_envelop_multiple_bounds()
+# draw_lower_envelop_multiple_bounds_lb_ub()
 
 
 
