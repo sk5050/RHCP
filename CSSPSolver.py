@@ -9,18 +9,21 @@ from LAOStar import LAOStar
 
 class CSSPSolver(object):
 
-    def __init__(self, model, bounds=[]):
+    def __init__(self, model, VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, bounds=[]):
 
         self.model = model
         self.bounds = bounds
 
-        self.algo = LAOStar(self.model,constrained=True,bounds=self.bounds,Lagrangian=True)
+        self.algo = LAOStar(self.model,constrained=True,VI_epsilon=VI_epsilon, VI_max_iter=VI_max_iter, \
+                            convergence_epsilon=convergence_epsilon,\
+                            bounds=self.bounds,Lagrangian=True)
         self.graph = self.algo.graph
 
 
     def solve(self, initial_alpha_set):
 
-        self.find_dual_multiple_bounds(initial_alpha_set)
+        self.find_dual(initial_alpha_set)
+        # self.find_dual_multiple_bounds(initial_alpha_set)
         # self.anytime_update()
 
  
@@ -40,9 +43,9 @@ class CSSPSolver(object):
 
         print(time.time() - start_time)
 
-        print("-------------------------------")
-        print(f_plus + self.algo.alpha[0]*g_plus)
-        print("-------------------------------")
+        # print("-------------------------------")
+        # print(f_plus + self.algo.alpha[0]*g_plus)
+        # print("-------------------------------")
         
         # infinite case
         self.resolve_LAOStar([initial_alpha_set[0][1]])
@@ -55,9 +58,9 @@ class CSSPSolver(object):
         print(time.time() - start_time)
 
 
-        print("-------------------------------")
-        print(f_minus + self.algo.alpha[0]*g_minus)
-        print("-------------------------------")
+        # print("-------------------------------")
+        # print(f_minus + self.algo.alpha[0]*g_minus)
+        # print("-------------------------------")
         
         # phase 1 interation to compute alpha
         while True:
@@ -78,9 +81,9 @@ class CSSPSolver(object):
             f = value[0]
             g = value[1] - self.bounds[0]
 
-            print("-------------------------------")
-            print(L_u)
-            print("-------------------------------")
+            # print("-------------------------------")
+            # print(L_u)
+            # print("-------------------------------")
             
             # cases
             if abs(L_u - L)<0.1**10 and g < 0:
@@ -296,7 +299,7 @@ class CSSPSolver(object):
             
         print("optimal solution found during phase 1!")
         print("dual optima with the following values:")
-        print(" alpha:"+str(alpha))
+        print(" alpha:"+str(self.algo.alpha))
         print("     L: "+str(L))
         print("     f: "+str(f))
         print("     g: "+str(g))

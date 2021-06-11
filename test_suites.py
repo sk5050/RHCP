@@ -266,7 +266,7 @@ def test_dual_alg():
 
     bound = 1.5
 
-    cssp_solver = CSSPSolver(model, bounds=[bound])
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
 
     cssp_solver.solve([[0,0.6]])
 
@@ -283,11 +283,11 @@ def test_dual_alg_multiple_bounds():
     model = GRIDModel_multiple_bounds(size, init_state, goal, prob_right_transition=0.85)
     
 
-    bounds = [1.5, 10]
+    bounds = [1.5, 12]
 
     cssp_solver = CSSPSolver(model, bounds=bounds)
 
-    cssp_solver.solve([[2,100],[0,20]])
+    cssp_solver.solve([[0,100],[0,20]])
 
     policy = cssp_solver.algo.extract_policy()
 
@@ -298,8 +298,8 @@ def test_dual_alg_multiple_bounds():
 
 
 # draw_lower_envelop()
-# test_dual_alg()
-test_dual_alg_multiple_bounds()
+test_dual_alg()
+# test_dual_alg_multiple_bounds()
 # test_LAOStar()
 # draw_lower_envelop_multiple_bounds()
 # draw_lower_envelop_multiple_bounds_lb_ub()
