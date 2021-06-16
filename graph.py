@@ -44,6 +44,8 @@ class Node(GraphElement):
         self.best_parents_set = set()    # set of parents in the best partial explicit graph
         self.children = dict()     # children dictionary, where key is an action, value is a set of children nodes with probabilities (nested list, e.g., [[node1,prob1], [node2,prob2]])
 
+        self.color = 'w'    # can be 'w':white, 'g':gray, 'b':black, for tricolor implementation of dfs. 
+
 
     def set_terminal(self):
 

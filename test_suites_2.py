@@ -6,6 +6,8 @@ import_models()
 
 from graph import Node, Graph
 from LAOStar import LAOStar
+from ILAOStar import ILAOStar
+from value_iteration import VI
 from CSSPSolver import CSSPSolver
 from grid_model import GRIDModel
 from grid_model_multiple_bounds import GRIDModel_multiple_bounds
@@ -21,6 +23,7 @@ from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import time
+import random
 
 
 def linspace(start, stop, n):
@@ -45,7 +48,7 @@ def test_LAOStar():
 
 
     
-    algo = LAOStar(model,constrained=True,VI_epsilon=1e-1, convergence_epsilon=1e-5,\
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-1, convergence_epsilon=1e-5,\
                    bounds=bounds,alpha=alpha,Lagrangian=True)
     
 
@@ -65,9 +68,10 @@ def test_LAOStar():
 
 
 def test_LAOStar_racetrack():
+    sys.setrecursionlimit(5000)
 
-    map_file = "models/racetrack_simple_3.txt"
-    init_state = (1,1,0,0)
+    map_file = "models/racetrack_hard.txt"
+    init_state = (3,1,0,0)
     model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
 
     # init_state = (0,0)
@@ -80,12 +84,11 @@ def test_LAOStar_racetrack():
 
 
     
-    algo = LAOStar(model,constrained=True,VI_epsilon=1, convergence_epsilon=1e-5,\
+    algo = ILAOStar(model,constrained=False,VI_epsilon=1e-100, convergence_epsilon=1e-100,\
                    bounds=bounds,alpha=alpha,Lagrangian=True)
     
 
     t = time.time()
-    print("--start--")
     policy = algo.solve()
     print("elapsed time: "+str(time.time()-t))
     print("number of states explored: "+str(len(algo.graph.nodes)))
@@ -96,7 +99,6 @@ def test_LAOStar_racetrack():
     print(value[0])
     print(value[1])
     # print(weighted_value)
-
 
 
 
@@ -134,7 +136,122 @@ def test_LAOStar_racetrack():
     # for init_pos in racetrack_model.initial_pos_set:
 
     #     if init_pos+(0,0) in 
+
+
+    state = init_state
+
+    while state[0:2]!=(-1,-1):
+
+        action = policy[state]
+        new_states = model.state_transitions(state,action)
+
+        choices = random.choices([0,1],weights=[0.9,0.1])
+        choice = choices[0]
+
+        path = [state[0:2], new_states[choice][0][0:2]]
+        test_grid.draw_path(axes,path,color='y')
+
+        state = new_states[choice][0]
+    
+
+    # for state,action in policy.items():
+    #     if action=='Terminal':
+    #         continue
         
+    #     new_states = model.state_transitions(state,action)
+
+    #     if new_states[0][0][0:2]!=(-1,-1):
+    #         path1 = [state[0:2], new_states[0][0][0:2]]
+    #         test_grid.draw_path(axes, path1, color='y')
+
+    #     if new_states[1][0][0:2]!=(-1,-1):
+    #         path2 = [state[0:2], new_states[1][0][0:2]]
+    #         test_grid.draw_path(axes, path2, color='y')
+
+    plt.show()
+
+        
+def test_VI_racetrack():
+
+    map_file = "models/racetrack1.txt"
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
+
+    # init_state = (0,0)
+    # size = (5,5)
+    # goal = (4,4)
+    # model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+
+    alpha = [0.0]
+    bounds = [1.5]
+
+
+    
+    algo = VI(model,VI_epsilon=1e-5)
+
+    t = time.time()
+    policy = algo.solve()
+    print("elapsed time: "+str(time.time() - t))
+    print("number of states explored: "+str(len(algo.graph.nodes)))
+    
+    value = algo.graph.root.value
+    # weighted_value = value[0] + alpha[0]*(value[1] - bounds[0]) + alpha[1]*(value[2] - bounds[1])
+    
+    print(value[0])
+    print(value[1])
+
+
+    map_text = open(map_file, 'r')
+    lines = map_text.readlines()
+
+    test_grid = Grid(len(lines[0]),len(lines))
+    axes = test_grid.draw()
+
+    offtrack = []
+    for i in range(len(lines)):
+        for j in range(len(lines[0])):
+            offtrack.append((j,i))
+
+    for pos in model.ontrack_pos_set:
+        offtrack.remove(pos)
+
+    for pos in model.finishline_pos_set:
+        offtrack.remove(pos)
+
+
+    initial = [test_grid.cell_verts(ix, iy) for ix,iy in model.initial_pos_set]
+    collection_initial = PolyCollection(initial, facecolors='g')
+    axes.add_collection(collection_initial)
+
+    finish = [test_grid.cell_verts(ix, iy) for ix,iy in model.finishline_pos_set]
+    collection_finish = PolyCollection(finish, facecolors='b')
+    axes.add_collection(collection_finish)
+
+    off = [test_grid.cell_verts(ix, iy) for ix,iy in offtrack]
+    collection_off = PolyCollection(off, facecolors='r')
+    axes.add_collection(collection_off)    
+
+
+    # for init_pos in racetrack_model.initial_pos_set:
+
+    #     if init_pos+(0,0) in 
+
+
+    # state = init_state
+
+    # while state[0:2]!=(-1,-1):
+
+    #     action = policy[state]
+    #     new_states = model.state_transitions(state,action)
+
+    #     choices = random.choices([0,1],weights=[0.9,0.1])
+    #     choice = choices[0]
+
+    #     path = [state[0:2], new_states[choice][0][0:2]]
+    #     test_grid.draw_path(axes,path,color='y')
+
+    #     state = new_states[choice][0]
+    
 
     for state,action in policy.items():
         if action=='Terminal':
@@ -151,9 +268,6 @@ def test_LAOStar_racetrack():
             test_grid.draw_path(axes, path2, color='y')
 
     plt.show()
-
-        
-
     
 
 
@@ -435,6 +549,7 @@ def test_dual_alg_multiple_bounds():
 # test_dual_alg_multiple_bounds()
 # test_LAOStar()
 test_LAOStar_racetrack()
+# test_VI_racetrack()
 # draw_lower_envelop_multiple_bounds()
 # draw_lower_envelop_multiple_bounds_lb_ub()
 

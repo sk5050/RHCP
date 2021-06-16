@@ -74,6 +74,7 @@ class RaceTrackModel(object):
         slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
 
         if new_state_result == "crash":
+            # rand_init_pos = self.init_state[0:2]
             rand_init_pos = random.choice(self.initial_pos_set)
             new_state = rand_init_pos + (0,0)
             
@@ -86,6 +87,7 @@ class RaceTrackModel(object):
 
 
         if slip_state_result == "crash":
+            # rand_init_pos = self.init_state[0:2]
             rand_init_pos = random.choice(self.initial_pos_set)
             slip_state = rand_init_pos + (0,0)
             

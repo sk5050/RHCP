@@ -6,7 +6,7 @@ from utils import *
 from graph import Node, Graph
 
 
-class LAOStar(object):
+class ILAOStar(object):
 
     def __init__(self, model, constrained=False, method='VI', VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, \
                  bounds=[], alpha=[], Lagrangian=False):
@@ -34,24 +34,65 @@ class LAOStar(object):
 
         while not self.is_termination():
 
-            expanded_node = self.expand()
-            self.update_values_and_graph(expanded_node)
+            self.dfs_update(self.graph.root)
+            self.update_best_partial_graph()  ## this ensures that best partial graph nodes are initialized with "w" color, for next dfs update. 
             self.update_fringe()
 
             self.debug_k += 1
 
 
             ### TODO: this is ad-hoc trick to deal with unbounded lagrangian value for the lb,ub case. need to be fixed. 
-            if self.compute_weighted_value(self.graph.root.value) < -100:
-                return None
+            # if self.compute_weighted_value(self.graph.root.value) < -100:
+            #     return None
 
-        # print(len(self.graph.nodes))
-        # self.print_policy()
-        # print(self.graph.root.value)
-
-        # print(self.debug_k)
         return self.extract_policy()
 
+
+    def dfs_update(self,node):
+
+        node.color = 'g'
+
+        if node.children != dict():
+            children = node.children[node.best_action]
+
+            for child,child_prob in children:
+               if child.color == 'w':
+                    self.dfs_update(child)
+        
+        
+        if not self.model.is_terminal(node.state) and node.best_action==None:  ## if this node has not been expanded and not terminal, then expand.
+            self.expand(node)
+
+            
+        if not self.model.is_terminal(node.state):   ## if this node is not terminal, evaluate. 
+            actions = self.model.actions(node.state)
+            min_value = [float('inf')]*(len(self.bounds)+1)
+            weighted_min_value = float('inf')    
+
+            for action in actions:
+                new_value = self.compute_value(node,action)
+
+                if self.constrained==False:
+                    if new_value[0] < min_value[0]:
+                        node.best_action = action
+                        min_value = new_value
+
+                else:
+                    if self.Lagrangian==False:
+                        raise ValueError("need to be implemented for constrained case.")
+                    else:
+                        weighted_value = self.compute_weighted_value(new_value)
+
+                        if weighted_value < weighted_min_value:
+                            node.best_action = action
+                            min_value = new_value
+                            weighted_min_value = weighted_value
+
+            node.value = min_value
+            children = node.children[node.best_action]
+            
+
+    
     def is_termination(self):
 
         if self.fringe:
@@ -88,8 +129,10 @@ class LAOStar(object):
 
 
 
-    def expand(self):
-        expanded_node = self.fringe.pop()
+    def expand(self,expanded_node=None):
+        if expanded_node==None:
+            expanded_node = self.fringe.pop()
+            
         state = expanded_node.state
         actions = self.model.actions(state)
 
@@ -114,24 +157,27 @@ class LAOStar(object):
 
         return expanded_node
 
+
+
+   
                     
 
-    def update_values_and_graph(self, expanded_node):
+    # def update_values_and_graph(self, expanded_node):
 
 
-        Z = self.get_ancestors(expanded_node)
+    #     Z = self.get_ancestors(expanded_node)
 
-        if self.method=='VI':
-            # if self.debug_k==15:
-            #     print(expanded_node.state)
-            V_new = self.value_iteration(Z, epsilon=self.VI_epsilon)
+    #     if self.method=='VI':
+    #         # if self.debug_k==15:
+    #         #     print(expanded_node.state)
+    #         V_new = self.value_iteration(Z, epsilon=self.VI_epsilon)
 
-        elif self.method=='PI':
-            raise ValueError("Not yet implemented.")
-        else:
-            raise ValueError("Error in method choice.")
+    #     elif self.method=='PI':
+    #         raise ValueError("Not yet implemented.")
+    #     else:
+    #         raise ValueError("Error in method choice.")
 
-        self.update_best_partial_graph(Z, V_new)
+    #     self.update_best_partial_graph(Z, V_new)
 
 
 
@@ -152,22 +198,22 @@ class LAOStar(object):
             
 
 
-    def get_ancestors(self, expanded_node):
-        Z = []
+    # def get_ancestors(self, expanded_node):
+    #     Z = []
 
-        queue = set([expanded_node])
+    #     queue = set([expanded_node])
 
-        while queue:
-            node = queue.pop()
+    #     while queue:
+    #         node = queue.pop()
 
-            if node not in Z:
+    #         if node not in Z:
                 
-                Z.append(node)
-                parents = node.best_parents_set
+    #             Z.append(node)
+    #             parents = node.best_parents_set
 
-                queue = queue.union(parents)
+    #             queue = queue.union(parents)
 
-        return Z
+    #     return Z
             
 
     def compute_value(self,node,action):
@@ -262,84 +308,6 @@ class LAOStar(object):
 
 
 
-
-
-    # def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
-
-    #     iter=0
-
-    #     V_prev = dict()
-    #     V_new = dict()
-    #     for node in Z:
-    #         if node.terminal==False:
-    #             V_prev[node.state] = node.value
-    #             V_new[node.state] = [float('inf')]*(len(self.bounds)+1)
-
-
-    #     max_error = 10**10
-    #     while not max_error < epsilon:
-    #         max_error = -1
-    #         for node in Z:
-    #             if node.terminal==False:
-    #                 V_prev[node.state] = node.value
-
-    #                 actions = self.model.actions(node.state)
-    #                 min_value = [float('inf')]*(len(self.bounds)+1)
-    #                 weighted_min_value = float('inf')
-
-    #                 prev_best_action = node.best_action
-    #                 best_action = None
-
-    #                 for action in actions:
-
-    #                     new_value = self.compute_value(node,action)
-
-    #                     if self.constrained==False:  # simple SSP case
-    #                         if new_value[0] < min_value[0]:
-    #                             min_value = new_value
-    #                             best_action = action
-
-    #                     else:
-    #                         if self.Lagrangian==False:
-    #                             raise ValueError("need to be implemented for constrained case.")
-    #                         else:
-    #                             weighted_value = self.compute_weighted_value(new_value)
-
-    #                             if weighted_value < weighted_min_value:
-    #                                 min_value = new_value
-    #                                 weighted_min_value = weighted_value
-    #                                 best_action = action
-
-    #                 V_new[node.state] = min_value
-
-    #                 error = abs(self.compute_weighted_value(V_prev[node.state]) - self.compute_weighted_value(V_new[node.state]))
-    #                 if error > max_error:
-    #                     max_error = error
-
-                    
-    #                 if return_on_policy_change==True:
-    #                     if prev_best_action != best_action:
-    #                         return False
-
-    #         for node in Z:
-    #             if node.terminal==False:
-    #                 node.value = V_new[node.state]
-
-    #         iter += 1
-                    
-    #         if iter > max_iter:
-    #             print("Maximun number of iteration reached.")
-    #             break
-
-    #     return V_new   
-    
-
-    
-
-
-
-    
-
     def VI_convergence_test(self,V_prev,V_new,epsilon):
         # might need more fast implementation. Numpy is better, but I am considering using pypy
 
@@ -362,13 +330,14 @@ class LAOStar(object):
         else:
             return False
 
-    def update_best_partial_graph(self, Z, V_new):
+    def update_best_partial_graph(self, Z=None, V_new=None):
 
         for state,node in self.graph.nodes.items():
             node.best_parents_set = set()
         
         visited = set()
         queue = set([self.graph.root])
+        self.graph.root.color = 'w'
 
         while queue:
 
@@ -409,6 +378,7 @@ class LAOStar(object):
                     for child,child_prob in children:
                         queue.add(child)
                         child.best_parents_set.add(node)
+                        child.color = 'w'
 
             visited.add(node)
 
