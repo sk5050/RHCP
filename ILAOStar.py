@@ -160,28 +160,6 @@ class ILAOStar(object):
 
 
 
-   
-                    
-
-    # def update_values_and_graph(self, expanded_node):
-
-
-    #     Z = self.get_ancestors(expanded_node)
-
-    #     if self.method=='VI':
-    #         # if self.debug_k==15:
-    #         #     print(expanded_node.state)
-    #         V_new = self.value_iteration(Z, epsilon=self.VI_epsilon)
-
-    #     elif self.method=='PI':
-    #         raise ValueError("Not yet implemented.")
-    #     else:
-    #         raise ValueError("Error in method choice.")
-
-    #     self.update_best_partial_graph(Z, V_new)
-
-
-
     def convergence_test(self):
 
         Z = self.get_best_solution_nodes()
@@ -198,32 +176,11 @@ class ILAOStar(object):
         return Z
             
 
-
-    # def get_ancestors(self, expanded_node):
-    #     Z = []
-
-    #     queue = set([expanded_node])
-
-    #     while queue:
-    #         node = queue.pop()
-
-    #         if node not in Z:
-                
-    #             Z.append(node)
-    #             parents = node.best_parents_set
-
-    #             queue = queue.union(parents)
-
-    #     return Z
-            
-
     def compute_value(self,node,action):
 
         cost_vector = self.model.cost(node.state,action)
 
         value = cost_vector
-
-        # value = reduce(lambda a,b: ptw_add(value, scalar_mul(a[0].value,a[1])) + ptw_add(value, scalar_mul(b[0].value,b[1])) , node.children[action])
 
         for child, child_prob in node.children[action]:
 
