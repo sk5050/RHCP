@@ -14,17 +14,19 @@ from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
 from LAO_paper_model import LAOModel
 
-from grid import Grid
-# import functools
+# from grid import Grid
+# # import functools
 
-from matplotlib.collections import LineCollection, PolyCollection
-from matplotlib.patches import Ellipse
+# from matplotlib.collections import LineCollection, PolyCollection
+# from matplotlib.patches import Ellipse
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
 import time
 import random
+import cProfile
 
+import json
 
 def linspace(start, stop, n):
     if n == 1:
@@ -84,7 +86,7 @@ def test_LAOStar_racetrack():
 
 
     
-    algo = ILAOStar(model,constrained=False,VI_epsilon=1e-100, convergence_epsilon=1e-100,\
+    algo = ILAOStar(model,constrained=False,VI_epsilon=1e-200, convergence_epsilon=1e-200,\
                    bounds=bounds,alpha=alpha,Lagrangian=True)
     
 
@@ -102,79 +104,79 @@ def test_LAOStar_racetrack():
 
 
 
-    map_text = open(map_file, 'r')
-    lines = map_text.readlines()
+    # map_text = open(map_file, 'r')
+    # lines = map_text.readlines()
 
-    test_grid = Grid(len(lines[0]),len(lines))
-    axes = test_grid.draw()
+    # test_grid = Grid(len(lines[0]),len(lines))
+    # axes = test_grid.draw()
 
-    offtrack = []
-    for i in range(len(lines)):
-        for j in range(len(lines[0])):
-            offtrack.append((j,i))
+    # offtrack = []
+    # for i in range(len(lines)):
+    #     for j in range(len(lines[0])):
+    #         offtrack.append((j,i))
 
-    for pos in model.ontrack_pos_set:
-        offtrack.remove(pos)
+    # for pos in model.ontrack_pos_set:
+    #     offtrack.remove(pos)
 
-    for pos in model.finishline_pos_set:
-        offtrack.remove(pos)
-
-
-    initial = [test_grid.cell_verts(ix, iy) for ix,iy in model.initial_pos_set]
-    collection_initial = PolyCollection(initial, facecolors='g')
-    axes.add_collection(collection_initial)
-
-    finish = [test_grid.cell_verts(ix, iy) for ix,iy in model.finishline_pos_set]
-    collection_finish = PolyCollection(finish, facecolors='b')
-    axes.add_collection(collection_finish)
-
-    off = [test_grid.cell_verts(ix, iy) for ix,iy in offtrack]
-    collection_off = PolyCollection(off, facecolors='r')
-    axes.add_collection(collection_off)    
+    # for pos in model.finishline_pos_set:
+    #     offtrack.remove(pos)
 
 
-    # for init_pos in racetrack_model.initial_pos_set:
+    # initial = [test_grid.cell_verts(ix, iy) for ix,iy in model.initial_pos_set]
+    # collection_initial = PolyCollection(initial, facecolors='g')
+    # axes.add_collection(collection_initial)
 
-    #     if init_pos+(0,0) in 
+    # finish = [test_grid.cell_verts(ix, iy) for ix,iy in model.finishline_pos_set]
+    # collection_finish = PolyCollection(finish, facecolors='b')
+    # axes.add_collection(collection_finish)
+
+    # off = [test_grid.cell_verts(ix, iy) for ix,iy in offtrack]
+    # collection_off = PolyCollection(off, facecolors='r')
+    # axes.add_collection(collection_off)    
 
 
-    state = init_state
+    # # for init_pos in racetrack_model.initial_pos_set:
 
-    while state[0:2]!=(-1,-1):
+    # #     if init_pos+(0,0) in 
 
-        action = policy[state]
-        new_states = model.state_transitions(state,action)
 
-        choices = random.choices([0,1],weights=[0.9,0.1])
-        choice = choices[0]
+    # state = init_state
 
-        path = [state[0:2], new_states[choice][0][0:2]]
-        test_grid.draw_path(axes,path,color='y')
+    # while state[0:2]!=(-1,-1):
 
-        state = new_states[choice][0]
-    
-
-    # for state,action in policy.items():
-    #     if action=='Terminal':
-    #         continue
-        
+    #     action = policy[state]
     #     new_states = model.state_transitions(state,action)
 
-    #     if new_states[0][0][0:2]!=(-1,-1):
-    #         path1 = [state[0:2], new_states[0][0][0:2]]
-    #         test_grid.draw_path(axes, path1, color='y')
+    #     choices = random.choices([0,1],weights=[0.9,0.1])
+    #     choice = choices[0]
 
-    #     if new_states[1][0][0:2]!=(-1,-1):
-    #         path2 = [state[0:2], new_states[1][0][0:2]]
-    #         test_grid.draw_path(axes, path2, color='y')
+    #     path = [state[0:2], new_states[choice][0][0:2]]
+    #     test_grid.draw_path(axes,path,color='y')
 
-    plt.show()
+    #     state = new_states[choice][0]
+    
+
+    # # for state,action in policy.items():
+    # #     if action=='Terminal':
+    # #         continue
+        
+    # #     new_states = model.state_transitions(state,action)
+
+    # #     if new_states[0][0][0:2]!=(-1,-1):
+    # #         path1 = [state[0:2], new_states[0][0][0:2]]
+    # #         test_grid.draw_path(axes, path1, color='y')
+
+    # #     if new_states[1][0][0:2]!=(-1,-1):
+    # #         path2 = [state[0:2], new_states[1][0][0:2]]
+    # #         test_grid.draw_path(axes, path2, color='y')
+
+    # plt.show()
 
         
 def test_VI_racetrack():
 
-    map_file = "models/racetrack1.txt"
-    init_state = (1,5,0,0)
+    map_file = "models/racetrack_hard.txt"
+    init_state = (3,1,0,0)
     model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
 
     # init_state = (0,0)
@@ -201,73 +203,141 @@ def test_VI_racetrack():
     print(value[1])
 
 
-    map_text = open(map_file, 'r')
-    lines = map_text.readlines()
+    # map_text = open(map_file, 'r')
+    # lines = map_text.readlines()
 
-    test_grid = Grid(len(lines[0]),len(lines))
-    axes = test_grid.draw()
+    # test_grid = Grid(len(lines[0]),len(lines))
+    # axes = test_grid.draw()
 
-    offtrack = []
-    for i in range(len(lines)):
-        for j in range(len(lines[0])):
-            offtrack.append((j,i))
+    # offtrack = []
+    # for i in range(len(lines)):
+    #     for j in range(len(lines[0])):
+    #         offtrack.append((j,i))
 
-    for pos in model.ontrack_pos_set:
-        offtrack.remove(pos)
+    # for pos in model.ontrack_pos_set:
+    #     offtrack.remove(pos)
 
-    for pos in model.finishline_pos_set:
-        offtrack.remove(pos)
-
-
-    initial = [test_grid.cell_verts(ix, iy) for ix,iy in model.initial_pos_set]
-    collection_initial = PolyCollection(initial, facecolors='g')
-    axes.add_collection(collection_initial)
-
-    finish = [test_grid.cell_verts(ix, iy) for ix,iy in model.finishline_pos_set]
-    collection_finish = PolyCollection(finish, facecolors='b')
-    axes.add_collection(collection_finish)
-
-    off = [test_grid.cell_verts(ix, iy) for ix,iy in offtrack]
-    collection_off = PolyCollection(off, facecolors='r')
-    axes.add_collection(collection_off)    
+    # for pos in model.finishline_pos_set:
+    #     offtrack.remove(pos)
 
 
-    # for init_pos in racetrack_model.initial_pos_set:
+    # initial = [test_grid.cell_verts(ix, iy) for ix,iy in model.initial_pos_set]
+    # collection_initial = PolyCollection(initial, facecolors='g')
+    # axes.add_collection(collection_initial)
 
-    #     if init_pos+(0,0) in 
+    # finish = [test_grid.cell_verts(ix, iy) for ix,iy in model.finishline_pos_set]
+    # collection_finish = PolyCollection(finish, facecolors='b')
+    # axes.add_collection(collection_finish)
+
+    # off = [test_grid.cell_verts(ix, iy) for ix,iy in offtrack]
+    # collection_off = PolyCollection(off, facecolors='r')
+    # axes.add_collection(collection_off)    
 
 
-    # state = init_state
+    # # for init_pos in racetrack_model.initial_pos_set:
 
-    # while state[0:2]!=(-1,-1):
+    # #     if init_pos+(0,0) in 
 
-    #     action = policy[state]
-    #     new_states = model.state_transitions(state,action)
 
-    #     choices = random.choices([0,1],weights=[0.9,0.1])
-    #     choice = choices[0]
+    # # state = init_state
 
-    #     path = [state[0:2], new_states[choice][0][0:2]]
-    #     test_grid.draw_path(axes,path,color='y')
+    # # while state[0:2]!=(-1,-1):
 
-    #     state = new_states[choice][0]
+    # #     action = policy[state]
+    # #     new_states = model.state_transitions(state,action)
+
+    # #     choices = random.choices([0,1],weights=[0.9,0.1])
+    # #     choice = choices[0]
+
+    # #     path = [state[0:2], new_states[choice][0][0:2]]
+    # #     test_grid.draw_path(axes,path,color='y')
+
+    # #     state = new_states[choice][0]
     
 
-    for state,action in policy.items():
-        if action=='Terminal':
-            continue
+    # for state,action in policy.items():
+    #     if action=='Terminal':
+    #         continue
         
-        new_states = model.state_transitions(state,action)
+    #     new_states = model.state_transitions(state,action)
 
-        if new_states[0][0][0:2]!=(-1,-1):
-            path1 = [state[0:2], new_states[0][0][0:2]]
-            test_grid.draw_path(axes, path1, color='y')
+    #     if new_states[0][0][0:2]!=(-1,-1):
+    #         path1 = [state[0:2], new_states[0][0][0:2]]
+    #         test_grid.draw_path(axes, path1, color='y')
 
-        if new_states[1][0][0:2]!=(-1,-1):
-            path2 = [state[0:2], new_states[1][0][0:2]]
-            test_grid.draw_path(axes, path2, color='y')
+    #     if new_states[1][0][0:2]!=(-1,-1):
+    #         path2 = [state[0:2], new_states[1][0][0:2]]
+    #         test_grid.draw_path(axes, path2, color='y')
 
-    plt.show()
+    # plt.show()
+    
+
+
+
+def test_racetrack():
+
+    map_file = "models/racetrack1.txt"
+    init_state = (1,6,0,0)
+    model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
+
+    # init_state = (0,0)
+    # size = (5,5)
+    # goal = (4,4)
+    # model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+
+    alpha = [0.0]
+    bounds = [1.5]
+
+
+    
+
+
+
+    # map_text = open(map_file, 'r')
+    # lines = map_text.readlines()
+
+    # test_grid = Grid(len(lines[0]),len(lines))
+    # axes = test_grid.draw()
+
+    # offtrack = []
+    # for i in range(len(lines)):
+    #     for j in range(len(lines[0])):
+    #         offtrack.append((j,i))
+
+    # for pos in model.ontrack_pos_set:
+    #     offtrack.remove(pos)
+
+    # for pos in model.finishline_pos_set:
+    #     offtrack.remove(pos)
+
+
+    # initial = [test_grid.cell_verts(ix, iy) for ix,iy in model.initial_pos_set]
+    # collection_initial = PolyCollection(initial, facecolors='g')
+    # axes.add_collection(collection_initial)
+
+    # finish = [test_grid.cell_verts(ix, iy) for ix,iy in model.finishline_pos_set]
+    # collection_finish = PolyCollection(finish, facecolors='b')
+    # axes.add_collection(collection_finish)
+
+    # off = [test_grid.cell_verts(ix, iy) for ix,iy in offtrack]
+    # collection_off = PolyCollection(off, facecolors='r')
+    # axes.add_collection(collection_off)
+
+
+    path = [(1,6), (1,5)]
+
+    print(model.bresenham_check_crash(1,6,1,5))
+    
+    # path = [(11,7), (15,8)]
+    # test_grid.draw_path(axes, path, color='y')
+
+
+
+    # plt.show()
+
+
+
+
     
 
 
@@ -549,7 +619,11 @@ def test_dual_alg_multiple_bounds():
 # test_dual_alg_multiple_bounds()
 # test_LAOStar()
 test_LAOStar_racetrack()
+
+# cProfile.run('test_LAOStar_racetrack()')
+
 # test_VI_racetrack()
+# test_racetrack()
 # draw_lower_envelop_multiple_bounds()
 # draw_lower_envelop_multiple_bounds_lb_ub()
 

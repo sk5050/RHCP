@@ -2,6 +2,7 @@
 
 import sys
 import time
+from functools import reduce
 from utils import *
 from graph import Node, Graph
 
@@ -221,6 +222,8 @@ class ILAOStar(object):
         cost_vector = self.model.cost(node.state,action)
 
         value = cost_vector
+
+        # value = reduce(lambda a,b: ptw_add(value, scalar_mul(a[0].value,a[1])) + ptw_add(value, scalar_mul(b[0].value,b[1])) , node.children[action])
 
         for child, child_prob in node.children[action]:
 

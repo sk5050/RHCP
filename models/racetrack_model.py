@@ -74,8 +74,8 @@ class RaceTrackModel(object):
         slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
 
         if new_state_result == "crash":
-            # rand_init_pos = self.init_state[0:2]
-            rand_init_pos = random.choice(self.initial_pos_set)
+            rand_init_pos = self.init_state[0:2]
+            # rand_init_pos = random.choice(self.initial_pos_set)
             new_state = rand_init_pos + (0,0)
             
         elif new_state_result == "finish":
@@ -87,8 +87,8 @@ class RaceTrackModel(object):
 
 
         if slip_state_result == "crash":
-            # rand_init_pos = self.init_state[0:2]
-            rand_init_pos = random.choice(self.initial_pos_set)
+            rand_init_pos = self.init_state[0:2]
+            # rand_init_pos = random.choice(self.initial_pos_set)
             slip_state = rand_init_pos + (0,0)
             
         elif slip_state_result == "finish":
@@ -174,8 +174,9 @@ class RaceTrackModel(object):
 
     def bresenham_check_crash(self, x1, y1, x2, y2):
 
-        mark = []
 
+        mark = []
+        epsilon = 1e-1
 
         ### parallel cases
 
@@ -197,6 +198,8 @@ class RaceTrackModel(object):
                     if traj_result:
                         return traj_result
 
+            return "ontrack"
+
 
         dy = y2 - y1
         if dy==0:
@@ -215,6 +218,8 @@ class RaceTrackModel(object):
                     traj_result = self.check_traj(mark[-1])
                     if traj_result:
                         return traj_result
+
+            return "ontrack"
                     
 
 
@@ -258,21 +263,22 @@ class RaceTrackModel(object):
                             return traj_result                        
                         
 
+            return "ontrack"
 
 
 
         ### eight octants separately
         
 
-        x1 += 1/2
-        y1 += 1/2
-        x2 += 1/2
-        y2 += 1/2
+        x1 = x1 + 0.5
+        y1 = y1 + 0.5
+        x2 = x2 + 0.5
+        y2 = y2 + 0.5
 
 
         if abs(dy)>abs(dx):
             # print("|dy| > |dx|")
-            m = abs(dx / dy)
+            m = abs(float(dx) / float(dy))
             i = int(x1)
             j1 = int(y1)
             j2 = int(y2)
@@ -285,7 +291,7 @@ class RaceTrackModel(object):
 
                     for j in range(j1,j2+1):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             i += i_inc
                             e -= 1.0
                             mark.append((i-1,j))
@@ -328,7 +334,7 @@ class RaceTrackModel(object):
 
                     for j in reversed(range(j2,j1+1)):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             i += i_inc
                             e -= 1.0
                             mark.append((i-1,j))
@@ -369,7 +375,7 @@ class RaceTrackModel(object):
 
                     for j in range(j1,j2+1):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             i += i_inc
                             e -= 1.0
                             mark.append((i+1,j))
@@ -405,10 +411,9 @@ class RaceTrackModel(object):
 
                 elif dy < 0:
                     e = -((x1-i)-(y1-j1)*m)
-
                     for j in reversed(range(j2,j1+1)):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             i += i_inc
                             e -= 1.0
                             mark.append((i+1,j))
@@ -444,7 +449,7 @@ class RaceTrackModel(object):
 
         elif abs(dy)<abs(dx):
             # print("|dy| < |dx|")
-            m = abs(dy / dx)
+            m = abs(float(dy) / float(dx))
             i1 = int(x1)
             i2 = int(x2)
             j = int(y1)
@@ -456,7 +461,7 @@ class RaceTrackModel(object):
 
                     for i in range(i1,i2+1):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             j += j_inc
                             e -= 1.0
                             mark.append((i,j-1))
@@ -495,7 +500,7 @@ class RaceTrackModel(object):
 
                     for i in reversed(range(i2, i1+1)):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             j += j_inc
                             e -= 1.0
                             mark.append((i,j-1))
@@ -537,7 +542,7 @@ class RaceTrackModel(object):
 
                     for i in range(i1,i2+1):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             j += j_inc
                             e -= 1.0
                             mark.append((i,j+1))
@@ -575,7 +580,7 @@ class RaceTrackModel(object):
 
                     for i in reversed(range(i2,i1+1)):
 
-                        if abs(e)<1e-5:
+                        if abs(e)<epsilon:
                             j += j_inc
                             e -= 1.0
                             mark.append((i,j+1))
