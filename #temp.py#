@@ -2,27 +2,17 @@
 
 import sys
 import time
-from functools import reduce
 from utils import *
 from graph import Node, Graph
 
 
-class ILAOStar(object):
+class LAOStar(object):
 
     def __init__(self, model, constrained=False, method='VI', VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, \
                  bounds=[], alpha=[], Lagrangian=False):
 
         self.model = model
         self.constrained = constrained
-
-        if not self.constrained:
-            self.value_num = 1
-        else:
-            self.value_num = len(alpha)+1
-
-            if self.value_num > 3:
-                raise ValueError("more than 2 constraints is not implemented yet.")
-
         self.method = method
         self.VI_epsilon = VI_epsilon
         self.VI_max_iter = VI_max_iter
@@ -33,10 +23,7 @@ class ILAOStar(object):
         self.Lagrangian=Lagrangian
         
         self.graph = Graph(name='G')
-        if not self.constrained:
-            self.graph.add_root(model.init_state, self.model.heuristic(model.init_state))
-        else:
-            self.graph.add_root(model.init_state, *self.model.heuristic(model.init_state))
+        self.graph.add_root(model.init_state, *self.model.heuristic(model.init_state))
 
         self.fringe = {self.graph.root}
 
@@ -47,76 +34,26 @@ class ILAOStar(object):
 
         while not self.is_termination():
 
-            self.dfs_update(self.graph.root)
-            self.update_best_partial_graph()  ## this ensures that best partial graph nodes are initialized with "w" color, for next dfs update. 
+            print(len(self.graph.nodes))
+
+            expanded_node = self.expand()
+            self.update_values_and_graph(expanded_node)
             self.update_fringe()
 
             self.debug_k += 1
+
 
             ### TODO: this is ad-hoc trick to deal with unbounded lagrangian value for the lb,ub case. need to be fixed. 
             # if self.compute_weighted_value(self.graph.root.value) < -100:
             #     return None
 
+        # print(len(self.graph.nodes))
+        # self.print_policy()
+        # print(self.graph.root.value)
+
+        # print(self.debug_k)
         return self.extract_policy()
 
-
-    def dfs_update(self,node):
-
-        node.color = 'g'
-
-        if node.children != dict():
-            children = node.children[node.best_action]
-
-            for child,child_prob in children:
-               if child.color == 'w':
-                    self.dfs_update(child)
-        
-        
-        if not self.model.is_terminal(node.state) and node.best_action==None:  ## if this node has not been expanded and not terminal, then expand.
-            self.expand(node)
-
-            
-        if not self.model.is_terminal(node.state):   ## if this node is not terminal, evaluate. 
-            actions = self.model.actions(node.state)
-            
-            if self.value_num == 1:
-                min_value = float('inf')
-            else:
-                min_value = [float('inf')]*self.value_num
-                
-            weighted_min_value = float('inf')    
-
-            for action in actions:
-                new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
-
-                if self.constrained==False:
-                    if new_value_1 < min_value:
-                        node.best_action = action
-                        min_value = new_value_1
-
-                else:
-                    if self.Lagrangian==False:
-                        raise ValueError("need to be implemented for constrained case.")
-                    else:
-                        weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
-
-                        if weighted_value < weighted_min_value:
-                            node.best_action = action
-                            min_value_1 = new_value_1
-                            min_value_2 = new_value_2
-                            min_value_3 = new_value_3
-                            weighted_min_value = weighted_value
-
-            if not self.constrained:
-                node.value_1 = min_value
-            else:
-                node.value_1 = min_value_1
-                node.value_2 = min_value_2
-                node.value_3 = min_value_3
-            children = node.children[node.best_action]
-            
-
-    
     def is_termination(self):
 
         if self.fringe:
@@ -129,11 +66,14 @@ class ILAOStar(object):
                     
                     while True:                        
 
+                        # prev_weighted_value = self.compute_weighted_value(self.graph.root.value)
+                        
                         if self.convergence_test():
                             return True
                         self.update_best_partial_graph(None,None)
-
                         self.update_fringe()
+
+                        # new_weighted_value = self.compute_weighted_value(self.graph.root.value)
 
                         if self.fringe:
                             return False
@@ -150,10 +90,8 @@ class ILAOStar(object):
 
 
 
-    def expand(self,expanded_node=None):
-        if expanded_node==None:
-            expanded_node = self.fringe.pop()
-            
+    def expand(self):
+        expanded_node = self.fringe.pop()
         state = expanded_node.state
         actions = self.model.actions(state)
 
@@ -165,10 +103,7 @@ class ILAOStar(object):
                 if child_state in self.graph.nodes:
                     child = self.graph.nodes[child_state]
                 else:
-                    if not self.constrained:
-                        self.graph.add_node(child_state, self.model.heuristic(child_state))
-                    else:
-                        self.graph.add_node(child_state, *self.model.heuristic(child_state))
+                    self.graph.add_node(child_state, *self.model.heuristic(child_state))
                     child = self.graph.nodes[child_state]
 
                     if self.model.is_terminal(child.state):
@@ -180,6 +115,25 @@ class ILAOStar(object):
             expanded_node.children[action] = children_list
 
         return expanded_node
+
+                    
+
+    def update_values_and_graph(self, expanded_node):
+
+
+        Z = self.get_ancestors(expanded_node)
+
+        if self.method=='VI':
+            # if self.debug_k==15:
+            #     print(expanded_node.state)
+            V_new = self.value_iteration(Z, epsilon=self.VI_epsilon)
+
+        elif self.method=='PI':
+            raise ValueError("Not yet implemented.")
+        else:
+            raise ValueError("Error in method choice.")
+
+        self.update_best_partial_graph(Z, V_new)
 
 
 
@@ -199,47 +153,137 @@ class ILAOStar(object):
         return Z
             
 
+
+    def get_ancestors(self, expanded_node):
+        Z = []
+
+        queue = set([expanded_node])
+
+        while queue:
+            node = queue.pop()
+
+            if node not in Z:
+                
+                Z.append(node)
+                parents = node.best_parents_set
+
+                queue = queue.union(parents)
+
+        return Z
+            
+
+    # def compute_value(self,node,action):
+
+    #     cost_vector = self.model.cost(node.state,action)
+
+    #     value = cost_vector
+
+    #     for child, child_prob in node.children[action]:
+
+    #         value = ptw_add(value, scalar_mul(child.value,child_prob))
+
+    #     return value
+
+
     def compute_value(self,node,action):
 
-        if self.value_num == 1:
-            value_1 = self.model.cost(node.state,action)
-            for child, child_prob in node.children[action]:
-                value_1 = value_1 + child.value_1*child_prob
-           
-            return value_1, None, None
+        value_1, value_2 = self.model.cost(node.state,action)
 
-        elif self.value_num == 2:
-            value_1, value_2 = self.model.cost(node.state,action)
-            for child, child_prob in node.children[action]:
-                value_1 = value_1 + child.value_1*child_prob
-                value_2 = value_2 + child.value_2*child_prob
-                
-            return value_1, value_2, None
+        for child, child_prob in node.children[action]:
 
-        elif self.value_num ==3:
-            value_1, value_2, value_3 = self.model.cost(node.state,action)
-            for child, child_prob in node.children[action]:
-                value_1 = value_1 + child.value_1*child_prob
-                value_2 = value_2 + child.value_2*child_prob
-                value_3 = value_3 + child.value_3*child_prob
-                
-            return value_1, value_2, value_3
+            value_1 = value_1 + child.value_1*child_prob
+            value_2 = value_2 + child.value_2*child_prob
+
+        return value_1, value_2
 
 
+    # def compute_weighted_value(self,value):
 
-    def compute_weighted_value(self,value_1, value_2, value_3):
+    #     primary_cost = value[0]
+    #     secondary_costs = value[1:]
 
-        if self.value_num == 1:
-            raise ValueError("seems there is no constraint but weighted value is being computed.")
+    #     # weighted_cost = primary_cost + dot(self.alpha, ptw_sub(secondary_costs, self.bounds))
+    #     weighted_cost = primary_cost + dot(self.alpha, secondary_costs)
 
-        elif self.value_num == 2:
-            weighted_cost = value_1 + self.alpha[0]*value_2
+    #     return weighted_cost
 
-        elif self.value_num == 3:
-            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3
+
+    def compute_weighted_value(self,value_1, value_2):
+
+        weighted_cost = value_1 + self.alpha[0]*value_2
 
         return weighted_cost
     
+
+    # def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
+
+    #     # if self.debug_k==15:
+    #     #     for z in Z:
+    #     #         print(z.state)
+    #     #     print(len(Z))
+
+    #     iter=0
+
+    #     V_prev = dict()
+    #     V_new = dict()
+    #     for node in Z:
+    #         if node.terminal==False:
+    #             V_prev[node.state] = node.value
+    #             V_new[node.state] = [float('inf')]*(len(self.bounds)+1)
+
+
+    #     while not self.VI_convergence_test(V_prev,V_new,epsilon):
+    #         for node in Z:
+    #             if node.terminal==False:
+    #                 V_prev[node.state] = node.value
+
+    #                 actions = self.model.actions(node.state)
+    #                 min_value = [float('inf')]*(len(self.bounds)+1)
+    #                 weighted_min_value = float('inf')
+
+    #                 prev_best_action = node.best_action
+    #                 best_action = None
+
+    #                 for action in actions:
+
+    #                     new_value = self.compute_value(node,action)
+
+    #                     if self.constrained==False:  # simple SSP case
+    #                         if new_value[0] < min_value[0]:
+    #                             min_value = new_value
+    #                             best_action = action
+
+    #                     else:
+    #                         if self.Lagrangian==False:
+    #                             raise ValueError("need to be implemented for constrained case.")
+    #                         else:
+    #                             weighted_value = self.compute_weighted_value(new_value)
+
+    #                             if weighted_value < weighted_min_value:
+    #                                 min_value = new_value
+    #                                 weighted_min_value = weighted_value
+    #                                 best_action = action
+
+    #                 V_new[node.state] = min_value
+    #                 if return_on_policy_change==True:
+    #                     if prev_best_action != best_action:
+    #                         return False
+
+    #         for node in Z:
+    #             if node.terminal==False:
+    #                 node.value = V_new[node.state]
+
+    #         iter += 1
+                    
+    #         if iter > max_iter:
+    #             print("Maximun number of iteration reached.")
+    #             break
+
+    #     return V_new
+
+
+
+
 
     def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
 
@@ -247,23 +291,23 @@ class ILAOStar(object):
 
         V_prev = dict()
         V_new = dict()
-        
+        V_new_1 = dict()
+        V_new_2 = dict()
+        for node in Z:
+            if node.terminal==False:
+                V_prev[node.state] = self.compute_weighted_value(node.value_1, node.value_2)
+                V_new[node.state] = [float('inf')]*(len(self.bounds)+1)
+
+
         max_error = 10**10
         while not max_error < epsilon:
             max_error = -1
             for node in Z:
                 if node.terminal==False:
-                    
-                    if not self.constrained:
-                        V_prev[node.state] = node.value_1
-                    else:
-                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+                    V_prev[node.state] = self.compute_weighted_value(node.value_1, node.value_2)
 
                     actions = self.model.actions(node.state)
-                    if not self.constrained:
-                        min_value = float('inf')
-                    else:
-                        min_value = [float('inf')]*self.value_num
+                    min_value = [float('inf')]*(len(self.bounds)+1)
                     weighted_min_value = float('inf')
 
                     prev_best_action = node.best_action
@@ -271,46 +315,42 @@ class ILAOStar(object):
 
                     for action in actions:
 
-                        new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
+                        new_value_1, new_value_2 = self.compute_value(node,action) 
 
                         if self.constrained==False:  # simple SSP case
-                            if new_value_1 < min_value:
-                                min_value = new_value_1
+                            if new_value[0] < min_value[0]:
+                                min_value = new_value
                                 best_action = action
 
                         else:
                             if self.Lagrangian==False:
                                 raise ValueError("need to be implemented for constrained case.")
                             else:
-                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2)
 
                                 if weighted_value < weighted_min_value:
                                     min_value_1 = new_value_1
                                     min_value_2 = new_value_2
-                                    min_value_3 = new_value_3
                                     weighted_min_value = weighted_value
                                     best_action = action
 
-
-                    if not self.constrained:
-                        V_new[node.state] = min_value
-                        node.value_1 = min_value
-                    else:
-                        V_new[node.state] = weighted_min_value
-                        node.value_1 = min_value_1
-                        node.value_2 = min_value_2
-                        node.value_3 = min_value_3
-
+                    V_new[node.state] = self.compute_weighted_value(min_value_1, min_value_2)
+                    V_new_1[node.state] = min_value_1
+                    V_new_2[node.state] = min_value_2
 
                     error = abs(V_prev[node.state] - V_new[node.state])
                     if error > max_error:
                         max_error = error
 
-
+                    
                     if return_on_policy_change==True:
                         if prev_best_action != best_action:
                             return False
 
+            for node in Z:
+                if node.terminal==False:
+                    node.value_1 = V_new_1[node.state]
+                    node.value_2 = V_new_2[node.state]
 
             iter += 1
                     
@@ -318,19 +358,44 @@ class ILAOStar(object):
                 print("Maximun number of iteration reached.")
                 break
 
-        return V_new
+        return V_new   
+    
+
+    
+
 
 
     
 
-    def update_best_partial_graph(self, Z=None, V_new=None):
+    # def VI_convergence_test(self,V_prev,V_new,epsilon):
+    #     # might need more fast implementation. Numpy is better, but I am considering using pypy
+
+    #     if self.constrained==False:
+    #         error = max([abs(V_prev[state][0]-V_new.get(state,0)[0]) for state in V_prev])
+    #     else:
+    #         diff = []
+    #         for state in V_prev:
+               
+    #             weighted_V_prev = self.compute_weighted_value(V_prev[state])
+    #             weighted_V_new = self.compute_weighted_value(V_new[state])
+    #             diff.append(abs(weighted_V_prev - weighted_V_new))
+
+
+    #         error = max(diff)
+
+        
+    #     if error < epsilon:
+    #         return True
+    #     else:
+    #         return False
+
+    def update_best_partial_graph(self, Z, V_new):
 
         for state,node in self.graph.nodes.items():
             node.best_parents_set = set()
         
         visited = set()
         queue = set([self.graph.root])
-        self.graph.root.color = 'w'
 
         while queue:
 
@@ -343,47 +408,36 @@ class ILAOStar(object):
                 if node.children!=dict():
 
                     actions = self.model.actions(node.state)
-                    if not self.constrained:
-                        min_value = float('inf')
-                    else:
-                        min_value = [float('inf')]*self.value_num
+                    min_value = [float('inf')]*(len(self.bounds)+1)
                     weighted_min_value = float('inf')
                     
                     for action in actions:
-                        new_value_1,new_value_2,new_value_3 = self.compute_value(node,action)
+                        new_value_1, new_value_2 = self.compute_value(node,action)
 
                         if self.constrained==False:
-                            if new_value_1 < min_value:
+                            if new_value[0] < min_value[0]:
                                 node.best_action = action
-                                min_value = new_value_1
+                                min_value = new_value
 
                         else:
                             if self.Lagrangian==False:
                                 raise ValueError("need to be implemented for constrained case.")
                             else:
-                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2)
 
                                 if weighted_value < weighted_min_value:
                                     node.best_action = action
                                     min_value_1 = new_value_1
                                     min_value_2 = new_value_2
-                                    min_value_3 = new_value_3
                                     weighted_min_value = weighted_value
-                                    
 
-                    if not self.constrained:
-                        node.value_1 = min_value
-                    else:
-                        node.value_1 = min_value_1
-                        node.value_2 = min_value_2
-                        node.value_3 = min_value_3
-                        
+                    node.value_1 = min_value_1
+                    node.value_2 = min_value_2
                     children = node.children[node.best_action]
 
                     for child,child_prob in children:
                         queue.add(child)
                         child.best_parents_set.add(node)
-                        child.color = 'w'
 
             visited.add(node)
 
@@ -400,7 +454,6 @@ class ILAOStar(object):
         while queue:
 
             node = queue.pop()
-
 
             if node in visited:
                 continue
@@ -419,8 +472,11 @@ class ILAOStar(object):
 
         self.fringe = fringe
 
+        # if self.debug_k==14:
+        #     for i in self.fringe:
+        #         print(i.state)
+        # print(self.graph.nodes[(1,0)].best_action)
 
-        
     def extract_policy(self):
 
         queue = set([self.graph.root])

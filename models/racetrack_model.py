@@ -107,57 +107,17 @@ class RaceTrackModel(object):
 
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
-        cost2 = 1.0
-        return [cost1, cost2]
+        # if state[0] < 5:
+        #     cost2 = 2.0
+        # else:
+        #     cost2 = 0.0
+        return cost1
 
     
     def heuristic(self, state,depth=None):
         heuristic1 = 0
-        heuristic2 = 0
-
-        return [heuristic1, heuristic2]
-
-
-
-
-
-    def print_policy(self,policy):
-
-        print("-"*21)
-        for j in [4,3,2,1,0]:
-            string = ""
-            for i in [0,1,2,3,4]:
-                string += "|"
-                if (i,j) in policy:
-                    if policy[(i,j)]=="Terminal":
-                        string += " T "
-                    else:
-                        string += " "+policy[(i,j)]+" "
-                else:
-                    string += "   "
-
-            string += "|"
-            print(string)
-            print("-"*21)
-
-    # def print_policy(self,policy):
-
-    #     print("-"*121)
-    #     for j in [29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0]:
-    #         string = ""
-    #         for i in [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29]:
-    #             string += "|"
-    #             if (i,j) in policy:
-    #                 if policy[(i,j)]=="Terminal":
-    #                     string += " T "
-    #                 else:
-    #                     string += " "+policy[(i,j)]+" "
-    #             else:
-    #                 string += "   "
-
-    #         string += "|"
-    #         print(string)
-    #         print("-"*121)
+        # heuristic2 = 0
+        return heuristic1
 
 
 

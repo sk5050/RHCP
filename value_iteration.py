@@ -8,15 +8,28 @@ from graph import Node, Graph
 
 class VI(object):
 
-    def __init__(self, model, VI_epsilon=1e-50, VI_max_iter=100000):
+    def __init__(self, model, constrained=False, VI_epsilon=1e-50, VI_max_iter=100000):
 
         self.model = model
+        self.constrained=constrained
+        
+        if not self.constrained:
+            self.value_num = 1
+        else:
+            self.value_num = len(alpha)+1
+
+            if self.value_num > 3:
+                raise ValueError("more than 2 constraints is not implemented yet.")
+        
         self.VI_epsilon = VI_epsilon
         self.VI_max_iter = VI_max_iter
         
         
         self.graph = Graph(name='G')
-        self.graph.add_root(model.init_state, value=self.model.heuristic(model.init_state))
+        if not self.constrained:
+            self.graph.add_root(model.init_state, self.model.heuristic(model.init_state))
+        else:
+            self.graph.add_root(model.init_state, *self.model.heuristic(model.init_state))
 
         self.debug_k = 0
 
@@ -67,7 +80,10 @@ class VI(object):
                 if child_state in self.graph.nodes:
                     child = self.graph.nodes[child_state]
                 else:
-                    self.graph.add_node(child_state, self.model.heuristic(child_state))
+                    if not self.constrained:
+                        self.graph.add_node(child_state, self.model.heuristic(child_state))
+                    else:
+                        self.graph.add_node(child_state, *self.model.heuristic(child_state))
                     child = self.graph.nodes[child_state]
 
                     if self.model.is_terminal(child.state):
@@ -84,43 +100,70 @@ class VI(object):
         return children_nodes
 
 
-            
 
     def compute_value(self,node,action):
 
-        cost_vector = self.model.cost(node.state,action)
+        if self.value_num == 1:
+            value_1 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+           
+            return value_1, None, None
 
-        value = cost_vector
+        elif self.value_num == 2:
+            value_1, value_2 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                
+            return value_1, value_2, None
 
-        for child, child_prob in node.children[action]:
+        elif self.value_num ==3:
+            value_1, value_2, value_3 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                
+            return value_1, value_2, value_3
 
-            value = ptw_add(value, scalar_mul(child.value,child_prob))
-
-        return value
 
 
 
+    def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
 
-
-    def value_iteration(self, Z, epsilon=1e-50, max_iter=100000, return_on_policy_change=False):
+        # if self.debug_k==15:
+        #     for z in Z:
+        #         print(z.state)
+        #     print(len(Z))
 
         iter=0
 
         V_prev = dict()
         V_new = dict()
-        for node in Z:
-            if node.terminal==False:
-                V_prev[node.state] = node.value
-                V_new[node.state] = [float('inf')]*2
+        V_new_1 = dict()
+        V_new_2 = dict()
+        V_new_3 = dict()
+        
 
 
-        while not self.VI_convergence_test(V_prev,V_new,epsilon):
+
+        max_error = 10**10
+        while not max_error < epsilon:
+            max_error = -1
             for node in Z:
                 if node.terminal==False:
-                    V_prev[node.state] = node.value
+                    
+                    if not self.constrained:
+                        V_prev[node.state] = node.value_1
+                    else:
+                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
 
                     actions = self.model.actions(node.state)
-                    min_value = [float('inf')]*2
+                    if not self.constrained:
+                        min_value = float('inf')
+                    else:
+                        min_value = [float('inf')]*self.value_num
                     weighted_min_value = float('inf')
 
                     prev_best_action = node.best_action
@@ -128,22 +171,49 @@ class VI(object):
 
                     for action in actions:
 
-                        new_value = self.compute_value(node,action)
+                        new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
 
-                        if new_value[0] < min_value[0]:
-                            min_value = new_value
-                            best_action = action
+                        if self.constrained==False:  # simple SSP case
+                            if new_value_1 < min_value:
+                                min_value = new_value_1
+                                best_action = action
 
+                        else:
+                            if self.Lagrangian==False:
+                                raise ValueError("need to be implemented for constrained case.")
+                            else:
+                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
 
+                                if weighted_value < weighted_min_value:
+                                    min_value_1 = new_value_1
+                                    min_value_2 = new_value_2
+                                    min_value_3 = new_value_3
+                                    weighted_min_value = weighted_value
+                                    best_action = action
 
                     V_new[node.state] = min_value
+                    if self.constrained:
+                        V_new_1[node.state] = min_value_1
+                        V_new_2[node.state] = min_value_2
+                        V_new_3[node.state] = min_value_3
+
+                    error = abs(V_prev[node.state] - V_new[node.state])
+                    if error > max_error:
+                        max_error = error
+                    
                     if return_on_policy_change==True:
                         if prev_best_action != best_action:
                             return False
 
+
             for node in Z:
                 if node.terminal==False:
-                    node.value = V_new[node.state]
+                    if not self.constrained:
+                        node.value_1 = V_new[node.state]
+                    else:
+                        node.value_1 = V_new_1[node.state]
+                        node.value_2 = V_new_2[node.state]
+                        node.value_3 = V_new_3[node.state]
 
             iter += 1
                     
@@ -152,23 +222,13 @@ class VI(object):
                 break
 
         return V_new
+    
 
 
 
-    def VI_convergence_test(self,V_prev,V_new,epsilon):
-        # might need more fast implementation. Numpy is better, but I am considering using pypy
-
-        error = max([abs(V_prev[state][0]-V_new.get(state,0)[0]) for state in V_prev])
-
-        
-        if error < epsilon:
-            return True
-        else:
-            return False
 
 
-
-    def update_best_partial_graph(self):
+    def update_best_partial_graph(self, Z=None, V_new=None):
 
         for state,node in self.graph.nodes.items():
             node.best_parents_set = set()
@@ -188,18 +248,41 @@ class VI(object):
                 if node.children!=dict():
 
                     actions = self.model.actions(node.state)
-                    min_value = [float('inf')]*2
+                    if not self.constrained:
+                        min_value = float('inf')
+                    else:
+                        min_value = [float('inf')]*self.value_num
                     weighted_min_value = float('inf')
                     
                     for action in actions:
-                        new_value = self.compute_value(node,action)
+                        new_value_1,new_value_2,new_value_3 = self.compute_value(node,action)
 
-                        if new_value[0] < min_value[0]:
-                            node.best_action = action
-                            min_value = new_value
+                        if self.constrained==False:
+                            if new_value_1 < min_value:
+                                node.best_action = action
+                                min_value = new_value_1
 
+                        else:
+                            if self.Lagrangian==False:
+                                raise ValueError("need to be implemented for constrained case.")
+                            else:
+                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
 
-                    node.value = min_value
+                                if weighted_value < weighted_min_value:
+                                    min_value_1 = new_value_1
+                                    min_value_2 = new_value_2
+                                    min_value_3 = new_value_3
+                                    weighted_min_value = weighted_value
+                                    best_action = action
+                                    
+
+                    if not self.constrained:
+                        node.value_1 = min_value
+                    else:
+                        node.value_1 = min_value_1
+                        node.value_2 = min_value_2
+                        node.value_3 = min_value_3
+                        
                     children = node.children[node.best_action]
 
                     for child,child_prob in children:
@@ -208,7 +291,7 @@ class VI(object):
                         child.color = 'w'
 
             visited.add(node)
-
+    
 
         
 

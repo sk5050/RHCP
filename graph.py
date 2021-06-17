@@ -30,10 +30,12 @@ class Node(GraphElement):
     Class for nodes in the graph.
     """
 
-    def __init__(self, state, value, best_action=None, terminal=False):
+    def __init__(self, state, value_1, value_2, value_3, best_action=None, terminal=False):
         super(Node, self).__init__(state)
         
-        self.value = value  # Q value. This can be vector, if there are multiple cost functions
+        self.value_1 = value_1
+        self.value_2 = value_2
+        self.value_3 = value_3
         self.terminal = terminal  # Terminal flag
         self.state = state
         self.best_action = best_action  # Best action at the node
@@ -50,30 +52,12 @@ class Node(GraphElement):
     def set_terminal(self):
 
         self.terminal = True
-        for i in range(len(self.value)):
-            self.value[i] = 0
+        self.value_1 = 0
+        self.value_2 = 0
+        self.value_3 = 0
 
 
 
-
-# class RAOStarGraphOperator(GraphElement):
-#     """
-#     Class for operators associated to hyperedge in the graph.
-#     """
-
-#     def __init__(self, name=None, op_value=0.0, properties={}):
-#         super(RAOStarGraphOperator, self).__init__(name, properties)
-
-#         self.op_value = op_value  # Value associated with this operator
-
-#         # Dictionary key used to detect that two operators are equal
-#         # TODO: This fixes the problem with duplicated operators, but doesn't
-#         # answer the question: how can unduplicated actions give rise to
-#         # duplicated operators? Answer: because the hypergraph is a graph, and the
-#         # same node was being expanded through different paths.
-
-#     def set_op_value(self, new_value):
-#         self.op_value = new_value
 
 
 class Graph(GraphElement):
@@ -168,20 +152,20 @@ class Graph(GraphElement):
     #             'The root of the hypergraph must be of type RAOStarGraphNode.')
 
 
-    def add_root(self, state, value=None, best_action=None, terminal=False):
+    def add_root(self, state, value_1=None, value_2=None, value_3=None, best_action=None, terminal=False):
         """Adds a node to the hypergraph."""
         if not state in self.nodes:
-            self.nodes[state] = Node(state, value, best_action, terminal)
+            self.nodes[state] = Node(state, value_1, value_2, value_3, best_action, terminal)
             self.root = self.nodes[state]
             return True
         else:
             return False
 
     
-    def add_node(self, state, value=None, best_action=None, terminal=False):
+    def add_node(self, state, value_1=None, value_2=None, value_3=None, best_action=None, terminal=False):
         """Adds a node to the hypergraph."""
         if not state in self.nodes:
-            self.nodes[state] = Node(state, value, best_action, terminal)
+            self.nodes[state] = Node(state, value_1, value_2, value_3, best_action, terminal)
             return True
         else:
             return False
