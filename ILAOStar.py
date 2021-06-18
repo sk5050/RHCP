@@ -5,6 +5,7 @@ import time
 from functools import reduce
 from utils import *
 from graph import Node, Graph
+from collections import deque
 
 
 class ILAOStar(object):
@@ -174,7 +175,7 @@ class ILAOStar(object):
                     if self.model.is_terminal(child.state):
                         child.set_terminal()
                 
-                child.parents_set.add(expanded_node)
+                # child.parents_set.add(expanded_node)
                 children_list.append([child,child_prob])
 
             expanded_node.children[action] = children_list
@@ -199,7 +200,15 @@ class ILAOStar(object):
         return Z
             
 
+    def temp(self, child):
+        return child[0].value_1 * child[1]
+    
     def compute_value(self,node,action):
+
+        # value_1 = self.model.cost(node.state,action) + children[0][0].value_1*children[0][1] + children[1][0].value_1*children[1][1]
+        # value_1 = self.model.cost(node.state,action) + sum([child.value_1*child_prob for child,child_prob in node.children[action]])
+        # value_1 = self.model.cost(node.state,action) + reduce(lambda x,y:x+y, list(map(self.temp,children)))
+        
 
         if self.value_num == 1:
             value_1 = self.model.cost(node.state,action)
@@ -325,11 +334,11 @@ class ILAOStar(object):
 
     def update_best_partial_graph(self, Z=None, V_new=None):
 
-        for state,node in self.graph.nodes.items():
-            node.best_parents_set = set()
+        # for state,node in self.graph.nodes.items():
+        #     node.best_parents_set = set()
         
         visited = set()
-        queue = set([self.graph.root])
+        queue = deque([self.graph.root])
         self.graph.root.color = 'w'
 
         while queue:
@@ -381,8 +390,8 @@ class ILAOStar(object):
                     children = node.children[node.best_action]
 
                     for child,child_prob in children:
-                        queue.add(child)
-                        child.best_parents_set.add(node)
+                        queue.append(child)
+                        # child.best_parents_set.add(node)
                         child.color = 'w'
 
             visited.add(node)
@@ -391,10 +400,39 @@ class ILAOStar(object):
 
 
 
+    # def update_fringe(self):
+
+    #     fringe = set()
+    #     queue = set([self.graph.root])
+    #     visited = set()
+
+    #     while queue:
+
+    #         node = queue.pop()
+
+
+    #         if node in visited:
+    #             continue
+
+    #         else:
+    #             if node.best_action!=None:  # if this node has been expanded
+    #                 children = node.children[node.best_action]
+
+    #                 for child,child_prob in children:
+    #                     queue.add(child)
+
+    #             elif node.terminal != True:
+    #                 fringe.add(node)
+
+    #         visited.add(node)
+
+    #     self.fringe = fringe
+
+
     def update_fringe(self):
 
         fringe = set()
-        queue = set([self.graph.root])
+        queue = deque([self.graph.root])
         visited = set()
 
         while queue:
@@ -410,15 +448,14 @@ class ILAOStar(object):
                     children = node.children[node.best_action]
 
                     for child,child_prob in children:
-                        queue.add(child)
+                        queue.append(child)
 
                 elif node.terminal != True:
                     fringe.add(node)
 
             visited.add(node)
 
-        self.fringe = fringe
-
+        self.fringe = fringe        
 
         
     def extract_policy(self):

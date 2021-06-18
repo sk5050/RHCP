@@ -8,10 +8,11 @@ import math
 import random
 # import numpy as np
 import time
+import json
 
 class RaceTrackModel(object):
 
-    def __init__(self, map_file, init_state, slip_prob=0.1):
+    def __init__(self, map_file, init_state, traj_check_dict_file=None, slip_prob=0.1):
 
 
         self.init_state = init_state
@@ -25,6 +26,13 @@ class RaceTrackModel(object):
         self.goal = (-1,-1)
 
         self.read_map(map_file)
+
+        if traj_check_dict_file:
+            with open(traj_check_dict_file) as f:
+                self.traj_check_dict = json.load(f)
+
+        else:
+            self.traj_check_dict = None
 
 
     def read_map(self, map_file):
@@ -70,8 +78,13 @@ class RaceTrackModel(object):
         slip_state = (state[0]+state[2], state[1]+state[3],\
                       state[2], state[3])
 
-        new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])
-        slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
+
+        if self.traj_check_dict:
+            new_state_result = self.traj_check_dict[str((state[0],state[1],new_state[0],new_state[1]))]
+            slip_state_result = self.traj_check_dict[str((state[0],state[1],slip_state[0],slip_state[1]))]
+        else:
+            new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])
+            slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
 
         if new_state_result == "crash":
             rand_init_pos = self.init_state[0:2]
