@@ -74,8 +74,10 @@ def test_LAOStar_racetrack():
 
     map_file = "models/racetrack_hard.txt"
     traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
+    heuristic_file = "models/racetrack_hard_heuristic.json"
 
     init_state = (3,1,0,0)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
     model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
 
     # init_state = (0,0)
@@ -88,7 +90,7 @@ def test_LAOStar_racetrack():
 
 
     
-    algo = ILAOStar(model,constrained=False,VI_epsilon=1e-200, convergence_epsilon=1e-200,\
+    algo = ILAOStar(model,constrained=False,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
                    bounds=bounds,alpha=alpha,Lagrangian=True)
     
 
@@ -338,6 +340,21 @@ def test_racetrack():
 
 
 
+def compute_racetrack_heuristic():
+
+    map_file = "models/racetrack_hard.txt"
+    init_state = (3,1,0,0)
+    model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
+
+    algo = VI(model,constrained=False,VI_epsilon=1e-5)
+
+    algo.expand_all()
+    heuristic = model.heuristic_computation(algo.graph)
+
+    print(len(heuristic))
+
+    with open('models/racetrack_hard_heuristic.json', 'w') as outfile:
+        json.dump(heuristic, outfile)
 
     
 
@@ -619,6 +636,8 @@ def test_dual_alg_multiple_bounds():
 # test_dual_alg()
 # test_dual_alg_multiple_bounds()
 # test_LAOStar()
+# compute_racetrack_heuristic()
+
 test_LAOStar_racetrack()
 
 # cProfile.run('test_LAOStar_racetrack()')

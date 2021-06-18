@@ -9,10 +9,11 @@ import random
 # import numpy as np
 import time
 import json
+from collections import deque
 
 class RaceTrackModel(object):
 
-    def __init__(self, map_file, init_state, traj_check_dict_file=None, slip_prob=0.1):
+    def __init__(self, map_file, init_state, traj_check_dict_file=None, heuristic_file=None, slip_prob=0.1):
 
 
         self.init_state = init_state
@@ -33,6 +34,14 @@ class RaceTrackModel(object):
 
         else:
             self.traj_check_dict = None
+
+
+        if heuristic_file:
+            with open(heuristic_file) as f:
+                self.heuristic_dict = json.load(f)
+
+        else:
+            self.heuristic_dict = None
 
 
     def read_map(self, map_file):
@@ -128,7 +137,11 @@ class RaceTrackModel(object):
 
     
     def heuristic(self, state,depth=None):
-        heuristic1 = 0
+        if self.heuristic_dict == None:
+            heuristic1 = 0
+        else:
+            heuristic1 = self.heuristic_dict[str(state)] - 1
+        
         # heuristic2 = 0
         return heuristic1
 
@@ -586,3 +599,39 @@ class RaceTrackModel(object):
                         e += m                   
 
         return "ontrack"
+
+
+    def heuristic_computation(self, graph):
+
+        for state, node in graph.nodes.items():
+            if state[0:2]==(-1,-1):
+                goal_node = node
+                break
+
+            
+        heuristic = dict()
+
+        queue = deque([goal_node])
+        visited = set()
+
+        level = 0
+        while queue:
+
+            level += 1
+            level_size = len(queue)
+
+            while level_size > 0:
+
+                node = queue.popleft()
+                level_size -= 1
+                
+                if node in visited:
+                    continue
+                else:
+                    for n in node.parents_set:
+                        queue.append(n)
+                    heuristic[str(node.state)] = level
+
+                visited.add(node)
+
+        return heuristic
