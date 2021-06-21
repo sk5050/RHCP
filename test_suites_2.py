@@ -14,14 +14,14 @@ from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
 from LAO_paper_model import LAOModel
 
-# from grid import Grid
-# # import functools
+from grid import Grid
+# import functools
 
-# from matplotlib.collections import LineCollection, PolyCollection
-# from matplotlib.patches import Ellipse
+from matplotlib.collections import LineCollection, PolyCollection
+from matplotlib.patches import Ellipse
 
-# import matplotlib.pyplot as plt
-# from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import time
 import random
 import cProfile
@@ -77,8 +77,8 @@ def test_LAOStar_racetrack():
     heuristic_file = "models/racetrack_hard_heuristic.json"
 
     init_state = (3,1,0,0)
-    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
-    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
 
     # init_state = (0,0)
     # size = (5,5)
@@ -193,7 +193,7 @@ def test_VI_racetrack():
 
 
     
-    algo = VI(model,constrained=False,VI_epsilon=1e-5)
+    algo = VI(model,constrained=False,VI_epsilon=1e-100)
 
     t = time.time()
     policy = algo.solve()
@@ -440,6 +440,59 @@ def draw_lower_envelop():
 
 
 
+def draw_lower_envelop_racetrack():
+
+
+
+    sys.setrecursionlimit(5000)
+
+    map_file = "models/racetrack_hard.txt"
+    traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
+    heuristic_file = "models/racetrack_hard_heuristic.json"
+
+    init_state = (3,1,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+    
+    alpha_list = list(linspace(0,0.25,30))
+
+    weighted_value_list = []
+
+    bound = 5
+
+    for a in alpha_list:
+
+        algo = ILAOStar(model,constrained=True,VI_epsilon=1e-100, convergence_epsilon=1e-100,\
+                   bounds=[bound],alpha=[a],Lagrangian=True)
+
+        policy = algo.solve()
+
+        value_1 = algo.graph.root.value_1
+        value_2 = algo.graph.root.value_2
+        
+        weighted_value = value_1 + a*(value_2 - bound)
+        weighted_value_list.append(weighted_value)
+
+
+        print("------------------")
+        print(a)
+        print(value_1)
+        print(value_2)
+        
+    print(alpha_list)
+    print(weighted_value_list)
+        
+    plt.plot(alpha_list, weighted_value_list,'*')
+    plt.plot(0.10517319210982577, 23.447206345550008, 'r*')  # with bound = 1.5
+
+
+    plt.show()    
+
+
+    
+
+
 def draw_lower_envelop_multiple_bounds():
 
     ## this is for two separate constraints
@@ -609,6 +662,35 @@ def test_dual_alg():
 
     model.print_policy(policy)
 
+    
+
+
+def test_dual_alg_racetrack():
+
+
+    sys.setrecursionlimit(5000)
+
+    map_file = "models/racetrack_hard.txt"
+    traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
+    heuristic_file = "models/racetrack_hard_heuristic.json"
+
+    init_state = (3,1,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 5
+
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
+
+    cssp_solver.solve([[0,1.0]])
+
+    policy = cssp_solver.algo.extract_policy()
+    
+
+
+
+    
 
 
 def test_dual_alg_multiple_bounds():
@@ -638,7 +720,9 @@ def test_dual_alg_multiple_bounds():
 # test_LAOStar()
 # compute_racetrack_heuristic()
 
-test_LAOStar_racetrack()
+# test_LAOStar_racetrack()
+draw_lower_envelop_racetrack()
+# test_dual_alg_racetrack()
 
 # cProfile.run('test_LAOStar_racetrack()')
 

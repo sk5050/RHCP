@@ -5,6 +5,7 @@ import time
 from utils import *
 from graph import Node, Graph
 from LAOStar import LAOStar
+from ILAOStar import ILAOStar
 
 
 class CSSPSolver(object):
@@ -14,9 +15,12 @@ class CSSPSolver(object):
         self.model = model
         self.bounds = bounds
 
-        self.algo = LAOStar(self.model,constrained=True,VI_epsilon=VI_epsilon, VI_max_iter=VI_max_iter, \
-                            convergence_epsilon=convergence_epsilon,\
-                            bounds=self.bounds,Lagrangian=True)
+        # self.algo = LAOStar(self.model,constrained=True,VI_epsilon=VI_epsilon, VI_max_iter=VI_max_iter, \
+        #                     convergence_epsilon=convergence_epsilon,\
+        #                     bounds=self.bounds,Lagrangian=True)
+        
+        self.algo = ILAOStar(self.model,constrained=True,VI_epsilon=VI_epsilon, convergence_epsilon=convergence_epsilon,\
+                             bounds=self.bounds,alpha=[0.0],Lagrangian=True)
         self.graph = self.algo.graph
 
 
@@ -34,12 +38,13 @@ class CSSPSolver(object):
         ##### phase 1
         # zero case
         self.algo.alpha = [initial_alpha_set[0][0]]
-        
+
         policy = self.algo.solve()
-        value = self.algo.graph.root.value
+        value_1 = self.algo.graph.root.value_1
+        value_2 = self.algo.graph.root.value_2
         
-        f_plus = value[0]
-        g_plus = value[1] - self.bounds[0]
+        f_plus = value_1
+        g_plus = value_2 - self.bounds[0]
 
         print(time.time() - start_time)
 
@@ -50,10 +55,11 @@ class CSSPSolver(object):
         # infinite case
         self.resolve_LAOStar([initial_alpha_set[0][1]])
 
-        value = self.algo.graph.root.value
+        value_1 = self.algo.graph.root.value_1
+        value_2 = self.algo.graph.root.value_2
         
-        f_minus = value[0]
-        g_minus = value[1] - self.bounds[0]
+        f_minus = value_1
+        g_minus = value_2 - self.bounds[0]
 
         print(time.time() - start_time)
 
@@ -75,11 +81,12 @@ class CSSPSolver(object):
 
             print(time.time() - start_time)
 
-            value = self.algo.graph.root.value
+            value_1 = self.algo.graph.root.value_1
+            value_2 = self.algo.graph.root.value_2
 
-            L_u = value[0] + alpha*(value[1] - self.bounds[0])
-            f = value[0]
-            g = value[1] - self.bounds[0]
+            L_u = value_1 + alpha*(value_2 - self.bounds[0])
+            f = value_1
+            g = value_2 - self.bounds[0]
 
             # print("-------------------------------")
             # print(L_u)

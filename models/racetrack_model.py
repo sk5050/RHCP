@@ -129,11 +129,12 @@ class RaceTrackModel(object):
 
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
-        # if state[0] < 5:
-        #     cost2 = 2.0
-        # else:
-        #     cost2 = 0.0
-        return cost1
+        # if state[0:2] in self.initial_pos_set:
+        if state[1]>=30:
+            cost2 = 10.0
+        else:
+            cost2 = 0.0
+        return cost1, cost2
 
     
     def heuristic(self, state,depth=None):
@@ -142,8 +143,8 @@ class RaceTrackModel(object):
         else:
             heuristic1 = self.heuristic_dict[str(state)] - 1
         
-        # heuristic2 = 0
-        return heuristic1
+        heuristic2 = 0
+        return heuristic1, heuristic2
 
 
 

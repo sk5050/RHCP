@@ -261,7 +261,7 @@ class ILAOStar(object):
         while not max_error < epsilon:
             max_error = -1
             for node in Z:
-                if node.terminal==False:
+                if node.terminal==False and node.best_action!=None:
                     
                     if not self.constrained:
                         V_prev[node.state] = node.value_1
@@ -279,7 +279,7 @@ class ILAOStar(object):
                     best_action = None
 
                     for action in actions:
-
+                        
                         new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
 
                         if self.constrained==False:  # simple SSP case
