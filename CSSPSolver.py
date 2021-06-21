@@ -10,10 +10,11 @@ from ILAOStar import ILAOStar
 
 class CSSPSolver(object):
 
-    def __init__(self, model, VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, bounds=[]):
+    def __init__(self, model, VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, resolve_epsilon=1e-5, bounds=[]):
 
         self.model = model
         self.bounds = bounds
+        self.resolve_epsilon = resolve_epsilon
 
         # self.algo = LAOStar(self.model,constrained=True,VI_epsilon=VI_epsilon, VI_max_iter=VI_max_iter, \
         #                     convergence_epsilon=convergence_epsilon,\
@@ -46,7 +47,9 @@ class CSSPSolver(object):
         f_plus = value_1
         g_plus = value_2 - self.bounds[0]
 
-        print(time.time() - start_time)
+        print("-"*50)
+        print("time elapsed: "+str(time.time() - start_time))
+        print("nodes expanded: "+str(len(self.algo.graph.nodes)))
 
         # print("-------------------------------")
         # print(f_plus + self.algo.alpha[0]*g_plus)
@@ -55,13 +58,19 @@ class CSSPSolver(object):
         # infinite case
         self.resolve_LAOStar([initial_alpha_set[0][1]])
 
+        # self.algo = ILAOStar(self.model,constrained=True,bounds=self.bounds,alpha=[initial_alpha_set[0][1]],Lagrangian=True)
+        # self.graph = self.algo.graph
+        # self.algo.solve()
+
         value_1 = self.algo.graph.root.value_1
         value_2 = self.algo.graph.root.value_2
         
         f_minus = value_1
         g_minus = value_2 - self.bounds[0]
 
-        print(time.time() - start_time)
+        print("-"*50)
+        print("time elapsed: "+str(time.time() - start_time))
+        print("nodes expanded: "+str(len(self.algo.graph.nodes)))
 
 
         # print("-------------------------------")
@@ -79,7 +88,13 @@ class CSSPSolver(object):
             # evaluate L(u), f, g
             self.resolve_LAOStar([alpha])
 
-            print(time.time() - start_time)
+            # self.algo = ILAOStar(self.model,constrained=True,bounds=self.bounds,alpha=[alpha],Lagrangian=True)
+            # self.graph = self.algo.graph
+            # self.algo.solve()
+
+            print("-"*50)
+            print("time elapsed: "+str(time.time() - start_time))
+            print("nodes expanded: "+str(len(self.algo.graph.nodes)))
 
             value_1 = self.algo.graph.root.value_1
             value_2 = self.algo.graph.root.value_2
@@ -136,7 +151,10 @@ class CSSPSolver(object):
             print("     f: "+str(f))
             print("     g: "+str(g))
            
-            print("elapsed time: "+str(time.time()-start_time))
+            print("total elapsed time: "+str(time.time()-start_time))
+            print("total nodes expanded: "+str(len(self.algo.graph.nodes)))
+
+            
 
 
 
@@ -315,12 +333,18 @@ class CSSPSolver(object):
         
 
 
-    def resolve_LAOStar(self, new_alpha=None):
+    def resolve_LAOStar(self, new_alpha=None,epsilon=1e-10):
 
         if new_alpha != None:
             self.algo.alpha = new_alpha
             
         nodes = list(self.algo.graph.nodes.values())
-        self.algo.value_iteration(nodes)
+        self.algo.value_iteration(nodes,epsilon=self.resolve_epsilon)
         self.algo.update_fringe()
         self.algo.solve()
+
+
+
+
+
+        

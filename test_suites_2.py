@@ -14,14 +14,14 @@ from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
 from LAO_paper_model import LAOModel
 
-from grid import Grid
-# import functools
+# from grid import Grid
+# # import functools
 
-from matplotlib.collections import LineCollection, PolyCollection
-from matplotlib.patches import Ellipse
+# from matplotlib.collections import LineCollection, PolyCollection
+# from matplotlib.patches import Ellipse
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
 import time
 import random
 import cProfile
@@ -721,8 +721,8 @@ def test_dual_alg_multiple_bounds():
 # compute_racetrack_heuristic()
 
 # test_LAOStar_racetrack()
-draw_lower_envelop_racetrack()
-# test_dual_alg_racetrack()
+# draw_lower_envelop_racetrack()
+test_dual_alg_racetrack()
 
 # cProfile.run('test_LAOStar_racetrack()')
 
