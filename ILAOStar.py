@@ -11,7 +11,7 @@ from collections import deque
 class ILAOStar(object):
 
     def __init__(self, model, constrained=False, method='VI', VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, \
-                 bounds=[], alpha=[], Lagrangian=False):
+                 bounds=[], alpha=[], Lagrangian=False, incremental=False, head=set(), blocked_action_set=set()):
 
         self.model = model
         self.constrained = constrained
@@ -41,6 +41,12 @@ class ILAOStar(object):
 
         self.fringe = {self.graph.root}
 
+
+        ## for second stage (incremental update)
+
+        self.incremental = incremental
+        self.head = head
+        self.blocked_action_set = blocked_action_set
 
         self.debug_k = 0
 
@@ -77,8 +83,12 @@ class ILAOStar(object):
             self.expand(node)
 
             
-        if not self.model.is_terminal(node.state):   ## if this node is not terminal, evaluate. 
-            actions = self.model.actions(node.state)
+        if not self.model.is_terminal(node.state):   ## if this node is not terminal, evaluate.
+
+            if self.incremental==False:
+                actions = self.model.actions(node.state)
+            else:
+                actions = self.incremental_update_action_model(node)
             
             if self.value_num == 1:
                 min_value = float('inf')
@@ -156,7 +166,12 @@ class ILAOStar(object):
             expanded_node = self.fringe.pop()
             
         state = expanded_node.state
-        actions = self.model.actions(state)
+
+        if self.incremental==False:
+            actions = self.model.actions(state)
+        else:
+            raise ValueError("something went wrong. need inspection.")
+            
 
         for action in actions:
             children = self.model.state_transitions(state,action)
@@ -268,7 +283,13 @@ class ILAOStar(object):
                     else:
                         V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
 
-                    actions = self.model.actions(node.state)
+ 
+                    if self.incremental==False:
+                        actions = self.model.actions(node.state)
+                    else:
+                        actions = self.incremental_update_action_model(node)                       
+                        
+                    
                     if not self.constrained:
                         min_value = float('inf')
                     else:
@@ -334,8 +355,8 @@ class ILAOStar(object):
 
     def update_best_partial_graph(self, Z=None, V_new=None):
 
-        # for state,node in self.graph.nodes.items():
-        #     node.best_parents_set = set()
+        for state,node in self.graph.nodes.items():
+            node.best_parents_set = set()
         
         visited = set()
         queue = deque([self.graph.root])
@@ -351,7 +372,12 @@ class ILAOStar(object):
             else:
                 if node.children!=dict():
 
-                    actions = self.model.actions(node.state)
+                    
+                    if self.incremental==False:
+                        actions = self.model.actions(node.state)
+                    else:
+                        actions = self.incremental_update_action_model(node)
+
                     if not self.constrained:
                         min_value = float('inf')
                     else:
@@ -391,7 +417,7 @@ class ILAOStar(object):
 
                     for child,child_prob in children:
                         queue.append(child)
-                        # child.best_parents_set.add(node)
+                        child.best_parents_set.add(node)
                         child.color = 'w'
 
             visited.add(node)
@@ -493,3 +519,29 @@ class ILAOStar(object):
 
         for state, action in policy.items():
             print(state, ' : ', action, self.graph.nodes[state].value,self.graph.nodes[state].terminal )
+
+
+
+    def incremental_update_action_model(self,node):
+
+        if node in self.head:
+            actions = node.best_action
+        else:
+            actions = self.model.actions(node.state)
+            for blocked_action in self.blocked_action_set:
+                actions.remove(blocekd_action)
+
+        return actions
+
+
+
+    def get_values(self,node):
+
+        if self.value_num == 1:
+            return node.value_1, None, None
+
+        elif self.value_num == 2:
+            return node.value_1, node.value_2, None
+
+        elif self.value_num ==3:
+            return node.value_1, node.value_2, node.value_3

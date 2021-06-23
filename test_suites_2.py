@@ -13,6 +13,7 @@ from grid_model import GRIDModel
 from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
 from LAO_paper_model import LAOModel
+from manual_model import MANUALModel
 
 # from grid import Grid
 # # import functools
@@ -668,7 +669,7 @@ def test_dual_alg():
 def test_dual_alg_racetrack():
 
 
-    sys.setrecursionlimit(5000)
+    sys.setrecursionlimit(8000)
 
     map_file = "models/racetrack_hard.txt"
     traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
@@ -686,9 +687,16 @@ def test_dual_alg_racetrack():
     cssp_solver.solve([[0,1.0]])
 
     policy = cssp_solver.algo.extract_policy()
-    
+
+    k_best_solution_set = cssp_solver.k_best_solution_set
+    for solution in k_best_solution_set:
+        print("-"*20)
+        print(solution[0])
+        print(solution[1])
 
 
+
+    cssp_solver.incremental_update(3)
 
     
 
@@ -711,7 +719,54 @@ def test_dual_alg_multiple_bounds():
     model.print_policy(policy)
 
     
+
+
+def test_manual_model():
+
+    model = MANUALModel(cost=1.0)
+    cssp_solver = CSSPSolver(model,bounds=[1])
+
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+                   bounds=[1.0],alpha=[1.0],Lagrangian=True)
     
+    policy_1 = algo.solve()
+
+    head = cssp_solver.get_head(algo.graph.nodes["3"])
+    print("head: "+str([n.state for n in head]))
+    
+
+    # model.cost_param_2 = 10
+
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+                   bounds=[1.0],alpha=[1.0],Lagrangian=True)
+
+    policy_2 = algo.solve()
+
+    head = cssp_solver.get_head(algo.graph.nodes["3"])
+    print("head: "+str([n.state for n in head]))
+
+    is_head_eq = cssp_solver.is_head_eq(head, policy_1)
+
+    print(is_head_eq)
+    
+    
+    # print(policy)
+    # print(algo.graph.nodes)
+    # for state,node in algo.graph.nodes.items():
+    #     print("--------------------")
+    #     print("state: "+state)
+
+    #     children_state = []
+    #     for action, children in node.children.items():
+    #         for child in children:
+    #             children_state.append(child[0].state)
+
+    #     print("children: "+str(children_state))
+    #     print("parents: "+str([n.state for n in node.best_parents_set]))
+
+    
+    
+
 
 
 # draw_lower_envelop()
@@ -723,6 +778,8 @@ def test_dual_alg_multiple_bounds():
 # test_LAOStar_racetrack()
 # draw_lower_envelop_racetrack()
 test_dual_alg_racetrack()
+
+# test_manual_model()
 
 # cProfile.run('test_LAOStar_racetrack()')
 
