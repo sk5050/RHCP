@@ -688,15 +688,14 @@ def test_dual_alg_racetrack():
 
     policy = cssp_solver.algo.extract_policy()
 
+    
+    cssp_solver.incremental_update(3)
+
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
         print("-"*20)
         print(solution[0])
         print(solution[1])
-
-
-
-    cssp_solver.incremental_update(3)
 
     
 

@@ -11,7 +11,7 @@ from collections import deque
 class ILAOStar(object):
 
     def __init__(self, model, constrained=False, method='VI', VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, \
-                 bounds=[], alpha=[], Lagrangian=False, incremental=False, head=set(), blocked_action_set=set()):
+                 bounds=[], alpha=[], Lagrangian=False, incremental=False, tweaking_node=None, head=set(), blocked_action_set=set()):
 
         self.model = model
         self.constrained = constrained
@@ -45,6 +45,7 @@ class ILAOStar(object):
         ## for second stage (incremental update)
 
         self.incremental = incremental
+        self.tweaking_node = tweaking_node
         self.head = head
         self.blocked_action_set = blocked_action_set
 
@@ -525,11 +526,18 @@ class ILAOStar(object):
     def incremental_update_action_model(self,node):
 
         if node in self.head:
-            actions = node.best_action
+            actions = [node.best_action]
+            
+        elif node==self.tweaking_node:
+            
+            actions = self.model.actions(node.state)[:]
+            # print(self.blocked_action_set)
+            # print(actions)
+            for blocked_action in self.blocked_action_set:
+                actions.remove(blocked_action)
+
         else:
             actions = self.model.actions(node.state)
-            for blocked_action in self.blocked_action_set:
-                actions.remove(blocekd_action)
 
         return actions
 

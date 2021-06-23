@@ -365,13 +365,11 @@ class CSSPSolver(object):
 
 
 
-        current_best_graph = copy.deepcopy(self.algo.graph)
-        print("hi")
-        time.sleep(100000)
-        current_best_policy = policy
+        current_best_graph = self.copy_graph(self.algo.graph)
+        current_best_policy = self.algo.extract_policy()
         
         for k in range(num_sol-2):
-            for state,best_action in current_best_policy:
+            for state,best_action in current_best_policy.items():
 
                 if state=="Terminal":
                     continue
@@ -380,7 +378,7 @@ class CSSPSolver(object):
                 new_candidate = self.find_candidate(node)
 
                 if new_candidate:
-                    self.candidate_set.heappush(new_candidate)
+                    heappush(self.candidate_set, new_candidate)
                 else:
                     continue
 
@@ -391,25 +389,11 @@ class CSSPSolver(object):
 
 
 
-    def find_next_best(self,node):
-
-        next_best_candidate = heappop(self.candidate_set)
-
-        current_best_weighted_value = next_best_candidate[0]
-        current_best_values = next_best_candidate[1]
-        current_best_graph = next_best_candidate[2]
-        current_best_policy = next_best_candidate[3]
-
-        self.k_best_solution_set.append((current_best_weighted_value, current_best_values, current_best_policy))
-
-        return current_best_graph, current_best_policy
-
-
-
     def find_candidate(self, node):
         
         self.algo.head = self.get_head(node)
-        self.algo.blocked_action_set = self.get_blocked_action_set(node,head)
+        self.algo.blocked_action_set = self.get_blocked_action_set(node,self.algo.head)
+        self.algo.tweaking_node = node
 
         ## if all actions are blocked, then no candidate is generated. 
         if len(self.algo.blocked_action_set)==len(self.model.actions(node.state)):
@@ -419,27 +403,27 @@ class CSSPSolver(object):
         policy = self.algo.solve()
 
         value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-        weigtehd_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
 
-        return (weighted_value, (value_1,value_2,value_3), copy.deepcopy(self.algo.graph), policy)
+        return (weighted_value, (value_1,value_2,value_3), self.copy_graph(self.algo.graph), policy)
 
 
 
-    def get_blocked_action_set(self,node):
+    def get_blocked_action_set(self,node,head):
 
         blocked_action_set = set()
-        currnet_policy_head = self.get_head(node)
 
         ## TODO: current policy need not be inspected in this way. Can be more easily done. Fix it for better efficiency later.
         for solution in self.k_best_solution_set:
             
             prev_policy = solution[2]
 
-            if self.is_head_eq(current_policy_head, prev_policy):
+            if self.is_head_eq(head, prev_policy):
                 blocked_action_set.add(prev_policy[node.state])
 
         return blocked_action_set
 
+    
 
     def get_head(self,node):
 
@@ -471,8 +455,27 @@ class CSSPSolver(object):
 
         head.remove(node)
         return head
-            
 
+
+    
+    def get_ancestors(self, node):
+        Z = set()
+
+        queue = set([node])
+
+        while queue:
+            node = queue.pop()
+
+            if node not in Z:
+                
+                Z.add(node)
+                parents = node.best_parents_set
+
+                queue = queue.union(parents)
+
+        return Z
+
+    
 
     def is_head_eq(self,head,policy):
 
@@ -493,20 +496,41 @@ class CSSPSolver(object):
         return True
 
 
-    def get_ancestors(self, node):
-        Z = set()
 
-        queue = set([node])
-
-        while queue:
-            node = queue.pop()
-
-            if node not in Z:
-                
-                Z.add(node)
-                parents = node.best_parents_set
-
-                queue = queue.union(parents)
-
-        return Z
         
+    def find_next_best(self,node):
+
+        next_best_candidate = heappop(self.candidate_set)
+
+        current_best_weighted_value = next_best_candidate[0]
+        current_best_values = next_best_candidate[1]
+        current_best_graph = next_best_candidate[2]
+        current_best_policy = next_best_candidate[3]
+
+        self.k_best_solution_set.append((current_best_weighted_value, current_best_values, current_best_policy))
+
+        return current_best_graph, current_best_policy
+
+
+
+
+    def copy_graph(self,graph):
+
+        new_graph = Graph(name='G')
+
+        for state, node in graph.nodes.items():
+
+            new_graph.add_node(state, node.value_1, node.value_2, node.value_3, node.best_action, node.terminal)
+
+        for state, node in graph.nodes.items():
+            for action, children in node.children.items():
+                new_graph.nodes[state].children[action] = []
+                for child, child_prob in children:
+                    new_graph.nodes[state].children[action].append([new_graph.nodes[child.state], child_prob])
+
+            for parents_node in node.best_parents_set:
+                new_graph.nodes[state].best_parents_set.add(new_graph.nodes[parents_node.state])
+                
+        new_graph.root = new_graph.nodes[self.model.init_state]
+
+        return new_graph
