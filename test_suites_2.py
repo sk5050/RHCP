@@ -9,6 +9,7 @@ from LAOStar import LAOStar
 from ILAOStar import ILAOStar
 from value_iteration import VI
 from CSSPSolver import CSSPSolver
+from simple_grid_model import SIMPLEGRIDModel
 from grid_model import GRIDModel
 from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
@@ -60,11 +61,10 @@ def test_LAOStar():
     print("elapsed time: "+str(time.time()-t))
     print("number of states explored: "+str(len(algo.graph.nodes)))
     
-    value = algo.graph.root.value
+    value_1 = algo.graph.root.value_1
     # weighted_value = value[0] + alpha[0]*(value[1] - bounds[0]) + alpha[1]*(value[2] - bounds[1])
     # value_2 = algo.graph.root.value_2
-    print(value[0])
-    print(value[1])
+    print(value_1)
     # print(weighted_value)
 
 
@@ -91,7 +91,7 @@ def test_LAOStar_racetrack():
 
 
     
-    algo = ILAOStar(model,constrained=False,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
                    bounds=bounds,alpha=alpha,Lagrangian=True)
     
 
@@ -194,7 +194,7 @@ def test_VI_racetrack():
 
 
     
-    algo = VI(model,constrained=False,VI_epsilon=1e-100)
+    algo = VI(model,constrained=True,VI_epsilon=1e-100,bounds=bounds, alpha=alpha)
 
     t = time.time()
     policy = algo.solve()
@@ -661,7 +661,17 @@ def test_dual_alg():
 
     policy = cssp_solver.algo.extract_policy()
 
-    model.print_policy(policy)
+    # try:
+    cssp_solver.incremental_update(20)
+    # except:
+    #     print(cssp_solver.candidate_set)
+    
+    k_best_solution_set = cssp_solver.k_best_solution_set
+    for solution in k_best_solution_set:
+        print("-"*20)
+        print(solution[0])
+        print(solution[1])
+        model.print_policy(solution[2])
 
     
 
@@ -730,23 +740,24 @@ def test_manual_model():
     
     policy_1 = algo.solve()
 
-    head = cssp_solver.get_head(algo.graph.nodes["3"])
+    head = cssp_solver.get_head(algo.graph.root,algo.graph.nodes["2"])
+    print(policy_1)
     print("head: "+str([n.state for n in head]))
     
 
     # model.cost_param_2 = 10
 
-    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
-                   bounds=[1.0],alpha=[1.0],Lagrangian=True)
+    # algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+    #                bounds=[1.0],alpha=[1.0],Lagrangian=True)
 
-    policy_2 = algo.solve()
+    # policy_2 = algo.solve()
 
-    head = cssp_solver.get_head(algo.graph.nodes["3"])
-    print("head: "+str([n.state for n in head]))
+    # head = cssp_solver.get_head(algo.graph.root, algo.graph.nodes["3"])
+    # print("head: "+str([n.state for n in head]))
 
-    is_head_eq = cssp_solver.is_head_eq(head, policy_1)
+    # is_head_eq = cssp_solver.is_head_eq(head, policy_1)
 
-    print(is_head_eq)
+    # print(is_head_eq)
     
     
     # print(policy)
@@ -763,22 +774,132 @@ def test_manual_model():
     #     print("children: "+str(children_state))
     #     print("parents: "+str([n.state for n in node.best_parents_set]))
 
+
+def test_grid_model_head():
+
+    init_state = (0,0)
+    size = (5,5)
+    goal = (4,4)
+    model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+
+
+    cssp_solver = CSSPSolver(model,bounds=[0.5])
+
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+                   bounds=[1.0],alpha=[1.0],Lagrangian=True)
     
+    policy = algo.solve()
+
+    model.print_policy(policy)
+
+    head = cssp_solver.get_head(algo.graph.root,algo.graph.nodes[(1,4)])
+    print(policy)
+    print(len(head))
+
+    print("head: "+str([n.state for n in head]))
     
+
+
+
+def draw_all_policies():
+
+    model = SIMPLEGRIDModel(prob_right_transition=0.85)
+
+    alpha = [8.0]
+    bounds = [3.0]
+
+
+    
+    algo = VI(model, constrained=True, VI_epsilon=1e-50, VI_max_iter=100000,bounds=bounds, alpha=alpha)
+
+
+    policy_set = [{(0, 0): 'V', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'V'},
+                  {(0, 0): 'V', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'L'},
+                  {(0, 0): 'V', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'V'},
+                  {(0, 0): 'L', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'V'},
+                  {(0, 0): 'L', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'V'},
+                  {(0, 0): 'L', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'L'},
+                  {(0, 0): 'V', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'L'},
+                  {(0, 0): 'L', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'L'}]
+
+    
+    algo.expand_all()
+
+    x_list = list(linspace(0.0, 3.0, 1000))
+
+    for policy in policy_set:
+        algo.policy_evaluation(policy, epsilon=1e-100)
+        value_1 = algo.graph.root.value_1
+        value_2 = algo.graph.root.value_2
+        print("------------")
+        print(value_1)
+        print(value_2)
+        print(value_1 + 1.7047619049945828*(value_2 - bounds[0]))
+
+        y_list = []
+
+        for x in x_list:
+            y = value_1 + x*(value_2 - bounds[0])
+            y_list.append(y)
+
+        plt.plot(x_list, y_list)
+
+    # plt.ylim([0,25])
+
+
+
+
+    cssp_solver = CSSPSolver(model, bounds=bounds,VI_epsilon=1e-100,convergence_epsilon=1e-300)
+
+    cssp_solver.solve([[0,3.0]])
+
+    policy = cssp_solver.algo.extract_policy()
+
+
+    
+    cssp_solver.incremental_update(8)
+
+    alpha = cssp_solver.algo.alpha[0]
+
+    k_best_solution_set = cssp_solver.k_best_solution_set
+
+    k = 0
+    for solution in k_best_solution_set:
+        print("-"*20)
+        print(solution[0])
+        print(solution[1])
+        print(solution[2])
+        k += 1
+
+        value_1 = solution[1][0]
+        value_2 = solution[1][1]
+
+        y = value_1 + alpha*(value_2 - bounds[0])
+
+        plt.plot(alpha, y, 'r*')
+        plt.annotate(str(k), (alpha, y))
+
+
+
+
+
+    
+    plt.show()
 
 
 
 # draw_lower_envelop()
-# test_dual_alg()
+test_dual_alg()
 # test_dual_alg_multiple_bounds()
 # test_LAOStar()
 # compute_racetrack_heuristic()
 
 # test_LAOStar_racetrack()
 # draw_lower_envelop_racetrack()
-test_dual_alg_racetrack()
+# test_dual_alg_racetrack()
 
 # test_manual_model()
+# test_grid_model_head()
 
 # cProfile.run('test_LAOStar_racetrack()')
 
@@ -787,6 +908,4 @@ test_dual_alg_racetrack()
 # draw_lower_envelop_multiple_bounds()
 # draw_lower_envelop_multiple_bounds_lb_ub()
 
-
-
-
+# draw_all_policies()

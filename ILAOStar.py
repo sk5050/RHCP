@@ -141,14 +141,16 @@ class ILAOStar(object):
                     
                     while True:                        
 
-                        if self.convergence_test():
-                            return True
+                        
                         self.update_best_partial_graph(None,None)
 
                         self.update_fringe()
 
                         if self.fringe:
                             return False
+
+                        if self.convergence_test():
+                            return True
                         # else:
                         #     if new_weighted_value < -100:
                         #         return True
@@ -258,7 +260,7 @@ class ILAOStar(object):
             raise ValueError("seems there is no constraint but weighted value is being computed.")
 
         elif self.value_num == 2:
-            weighted_cost = value_1 + self.alpha[0]*value_2
+            weighted_cost = value_1 + self.alpha[0]*(value_2 - self.bounds[0])
 
         elif self.value_num == 3:
             weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3
@@ -331,6 +333,8 @@ class ILAOStar(object):
                         node.value_1 = min_value_1
                         node.value_2 = min_value_2
                         node.value_3 = min_value_3
+
+                    node.best_action = best_action
 
 
                     error = abs(V_prev[node.state] - V_new[node.state])
@@ -524,15 +528,12 @@ class ILAOStar(object):
 
 
     def incremental_update_action_model(self,node):
-
         if node in self.head:
             actions = [node.best_action]
             
         elif node==self.tweaking_node:
             
             actions = self.model.actions(node.state)[:]
-            # print(self.blocked_action_set)
-            # print(actions)
             for blocked_action in self.blocked_action_set:
                 actions.remove(blocked_action)
 
@@ -553,3 +554,106 @@ class ILAOStar(object):
 
         elif self.value_num ==3:
             return node.value_1, node.value_2, node.value_3
+
+
+
+
+
+
+
+
+##################################################################################
+########################## below are functions for debugging #####################
+########################## test all policies to visually inspect #################
+##################################################################################
+
+
+
+    def expand_all(self):
+
+        visited = set()
+        queue = set([self.graph.root])
+
+        while queue:
+
+            node = queue.pop()
+
+            if node in visited:
+                continue
+
+            else:
+                children_nodes = self.expand(node)
+
+                for child in children_nodes:
+                    if child.terminal==False and child not in visited:
+                        queue.add(child)
+                
+            visited.add(node)        
+
+
+
+    def policy_evaluation(self, policy, epsilon=1e-50):
+
+        V_prev = dict()
+        V_new = dict()
+        
+        max_error = 10**10
+        while not max_error < epsilon:
+            max_error = -1
+            
+            for node in self.graph.nodes:
+                if node.terminal==False:
+                    
+                    if not self.constrained:
+                        V_prev[node.state] = node.value_1
+                    else:
+                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+
+ 
+                    if self.incremental==False:
+                        actions = self.model.actions(node.state)
+                    else:
+                        actions = self.incremental_update_action_model(node)                       
+                        
+                    
+                    if not self.constrained:
+                        min_value = float('inf')
+                    else:
+                        min_value = [float('inf')]*self.value_num
+                        
+                    weighted_min_value = float('inf')
+
+                        
+                    new_value_1, new_value_2, new_value_3 = self.compute_value(node,policy[node.state])
+
+                    if self.constrained==False:  # simple SSP case
+                        min_value = new_value_1
+                        
+
+                    else:
+                        if self.Lagrangian==False:
+                            raise ValueError("need to be implemented for constrained case.")
+                        else:
+                            weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+
+                            min_value_1 = new_value_1
+                            min_value_2 = new_value_2
+                            min_value_3 = new_value_3
+                            weighted_min_value = weighted_value
+
+
+                    if not self.constrained:
+                        V_new[node.state] = min_value
+                        node.value_1 = min_value
+                    else:
+                        V_new[node.state] = weighted_min_value
+                        node.value_1 = min_value_1
+                        node.value_2 = min_value_2
+                        node.value_3 = min_value_3
+
+
+                    error = abs(V_prev[node.state] - V_new[node.state])
+                    if error > max_error:
+                        max_error = error
+
+

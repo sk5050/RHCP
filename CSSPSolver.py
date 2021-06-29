@@ -32,6 +32,8 @@ class CSSPSolver(object):
         self.candidate_set = []
         self.current_best_policy = None
 
+        self.candidate_idx = 0   ## this index is used for tie-breaking in heap queue. 
+
 
     def solve(self, initial_alpha_set):
 
@@ -59,6 +61,8 @@ class CSSPSolver(object):
         print("-"*50)
         print("time elapsed: "+str(time.time() - start_time))
         print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+        print("     f: "+str(f_plus))
+        print("     g: "+str(g_plus))
 
         # print("-------------------------------")
         # print(f_plus + self.algo.alpha[0]*g_plus)
@@ -68,6 +72,8 @@ class CSSPSolver(object):
         policy = self.resolve_LAOStar([initial_alpha_set[0][1]])
         value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
         weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+
+        del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
         self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
 
         # self.algo = ILAOStar(self.model,constrained=True,bounds=self.bounds,alpha=[initial_alpha_set[0][1]],Lagrangian=True)
@@ -80,6 +86,8 @@ class CSSPSolver(object):
         print("-"*50)
         print("time elapsed: "+str(time.time() - start_time))
         print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+        print("     f: "+str(f_minus))
+        print("     g: "+str(g_minus))
 
 
         # print("-------------------------------")
@@ -106,25 +114,28 @@ class CSSPSolver(object):
             # self.graph = self.algo.graph
             # self.algo.solve()
 
-            print("-"*50)
-            print("time elapsed: "+str(time.time() - start_time))
-            print("nodes expanded: "+str(len(self.algo.graph.nodes)))
-
             L_u = value_1 + alpha*(value_2 - self.bounds[0])
             f = value_1
             g = value_2 - self.bounds[0]
+
+            print("-"*50)
+            print("time elapsed: "+str(time.time() - start_time))
+            print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+            print("     f: "+str(f))
+            print("     g: "+str(g))
+            print("     L: "+str(L_u))
 
             # print("-------------------------------")
             # print(L_u)
             # print("-------------------------------")
             
             # cases
-            if abs(L_u - L)<0.1**5 and g < 0:
+            if abs(L_u - L)<0.1**10 and g < 0:
                 LB = L_u
                 UB = min(f, UB)
                 break
             
-            elif abs(L_u - L)<0.1**5 and g > 0:
+            elif abs(L_u - L)<0.1**10 and g > 0:
                 LB = L_u
                 UB = f_minus
                 break
@@ -367,25 +378,33 @@ class CSSPSolver(object):
 
         current_best_graph = self.copy_graph(self.algo.graph)
         current_best_policy = self.algo.extract_policy()
-        
-        for k in range(num_sol-2):
+
+        for k in range(num_sol-1):
+
             for state,best_action in current_best_policy.items():
 
-                if state=="Terminal":
+                if best_action=="Terminal":
                     continue
 
-                node = current_best_graph.nodes[state]
+                node = self.algo.graph.nodes[state]
                 new_candidate = self.find_candidate(node)
 
                 if new_candidate:
-                    heappush(self.candidate_set, new_candidate)
+                    if self.candidate_exists(new_candidate):
+                        self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
+                        continue
+                    else:
+                        heappush(self.candidate_set, new_candidate)
                 else:
                     continue
 
-                self.algo.graph = current_best_graph  ## returning to the previous graph.
+                self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
 
+
+           # time.sleep(1000)
+                
             current_best_graph, current_best_policy = self.find_next_best()
-            self.algo.graph = current_best_graph
+            self.algo.graph = self.copy_graph(current_best_graph)
 
 
 
@@ -398,6 +417,7 @@ class CSSPSolver(object):
         ## if all actions are blocked, then no candidate is generated. 
         if len(self.algo.blocked_action_set)==len(self.model.actions(node.state)):
             return False
+
         
         self.algo.fringe = set([node])
         policy = self.algo.solve()
@@ -405,7 +425,9 @@ class CSSPSolver(object):
         value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
         weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
 
-        return (weighted_value, (value_1,value_2,value_3), self.copy_graph(self.algo.graph), policy)
+        self.candidate_idx += 1
+
+        return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), self.copy_graph(self.algo.graph), policy)
 
 
 
@@ -423,38 +445,70 @@ class CSSPSolver(object):
 
         return blocked_action_set
 
-    
 
-    def get_head(self,node):
 
-        ancestors = self.get_ancestors(node)
-        queue = ancestors.copy()
-        head = ancestors.copy()
+
+    def get_head(self, node):
+
+        queue = set([self.algo.graph.root])
+        head = set()
 
         while queue:
+
             popped_node = queue.pop()
+
+            if popped_node in head:
+                continue
 
             if popped_node == node:
                 continue
 
+            if popped_node.terminal==True:
+                continue
+
+            head.add(popped_node)
+            
             if popped_node.best_action!=None:
                 children = popped_node.children[popped_node.best_action]
 
                 for child,child_prob in children:
-                    if child in head:
-                        continue
-                    else:
-                        queue.add(child)
-                        head.add(child)
-
-            elif popped_node.terminal==True:
-                continue
+                    queue.add(child)
 
             else:
                 raise ValueError("Policy seems have unexpanded node.")                    
 
-        head.remove(node)
-        return head
+        return head    
+    
+
+    # def get_head(self,node):
+
+    #     head = self.get_ancestors(node)
+    #     queue = head.copy()
+
+    #     while queue:
+    #         popped_node = queue.pop()
+
+    #         if popped_node == node:
+    #             continue
+
+    #         if popped_node.best_action!=None:
+    #             children = popped_node.children[popped_node.best_action]
+
+    #             for child,child_prob in children:
+    #                 if child in head:
+    #                     continue
+    #                 else:
+    #                     queue.add(child)
+    #                     head.add(child)
+
+    #         elif popped_node.terminal==True:
+    #             continue
+
+    #         else:
+    #             raise ValueError("Policy seems have unexpanded node.")                    
+
+    #     head.remove(node)
+    #     return head
 
 
     
@@ -494,18 +548,54 @@ class CSSPSolver(object):
                     return False
 
         return True
+    
+
+    def candidate_exists(self,new_candidate):
+
+        for candidate in self.candidate_set:
+
+            if abs(candidate[0] - new_candidate[0]) > 1e-5:
+                continue
+
+            else:
+                if self.is_policy_eq(candidate[4], new_candidate[4]):
+                    return True
+
+        return False
 
 
+    def is_policy_eq(self, policy_1, policy_2):
+
+        if len(policy_1)!=len(policy_2):
+            return False
+
+        else:
+
+            for state, action in policy_1.items():
+
+                if state not in policy_2:
+                    return False
+                else:
+                    if action != policy_2[state]:
+                        return False
+
+        return True
 
         
-    def find_next_best(self,node):
+    def find_next_best(self):
 
+
+        # print([cand[0] for cand in self.candidate_set])
+        
         next_best_candidate = heappop(self.candidate_set)
 
+        # print(next_best_candidate[0])
+        # self.model.print_policy(next_best_candidate[3])
+
         current_best_weighted_value = next_best_candidate[0]
-        current_best_values = next_best_candidate[1]
-        current_best_graph = next_best_candidate[2]
-        current_best_policy = next_best_candidate[3]
+        current_best_values = next_best_candidate[2]
+        current_best_graph = next_best_candidate[3]
+        current_best_policy = next_best_candidate[4]
 
         self.k_best_solution_set.append((current_best_weighted_value, current_best_values, current_best_policy))
 

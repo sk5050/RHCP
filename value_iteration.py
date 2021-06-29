@@ -8,7 +8,7 @@ from graph import Node, Graph
 
 class VI(object):
 
-    def __init__(self, model, constrained=False, VI_epsilon=1e-50, VI_max_iter=100000):
+    def __init__(self, model, constrained=False, VI_epsilon=1e-50, VI_max_iter=100000,bounds=[], alpha=[]):
 
         self.model = model
         self.constrained=constrained
@@ -31,6 +31,10 @@ class VI(object):
         else:
             self.graph.add_root(model.init_state, *self.model.heuristic(model.init_state))
 
+
+
+        self.alpha = alpha
+        self.bounds = bounds
         self.debug_k = 0
 
 
@@ -130,24 +134,16 @@ class VI(object):
 
 
 
+
+
     def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
 
-        # if self.debug_k==15:
-        #     for z in Z:
-        #         print(z.state)
-        #     print(len(Z))
-
+        
         iter=0
 
         V_prev = dict()
         V_new = dict()
-        V_new_1 = dict()
-        V_new_2 = dict()
-        V_new_3 = dict()
         
-
-
-
         max_error = 10**10
         while not max_error < epsilon:
             max_error = -1
@@ -159,7 +155,10 @@ class VI(object):
                     else:
                         V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
 
+ 
                     actions = self.model.actions(node.state)
+                        
+                    
                     if not self.constrained:
                         min_value = float('inf')
                     else:
@@ -170,7 +169,7 @@ class VI(object):
                     best_action = None
 
                     for action in actions:
-
+                        
                         new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
 
                         if self.constrained==False:  # simple SSP case
@@ -179,41 +178,36 @@ class VI(object):
                                 best_action = action
 
                         else:
-                            if self.Lagrangian==False:
-                                raise ValueError("need to be implemented for constrained case.")
-                            else:
-                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                            weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
 
-                                if weighted_value < weighted_min_value:
-                                    min_value_1 = new_value_1
-                                    min_value_2 = new_value_2
-                                    min_value_3 = new_value_3
-                                    weighted_min_value = weighted_value
-                                    best_action = action
+                            if weighted_value < weighted_min_value:
+                                min_value_1 = new_value_1
+                                min_value_2 = new_value_2
+                                min_value_3 = new_value_3
+                                weighted_min_value = weighted_value
+                                best_action = action
 
-                    V_new[node.state] = min_value
-                    if self.constrained:
-                        V_new_1[node.state] = min_value_1
-                        V_new_2[node.state] = min_value_2
-                        V_new_3[node.state] = min_value_3
+
+                    if not self.constrained:
+                        V_new[node.state] = min_value
+                        node.value_1 = min_value
+                    else:
+                        V_new[node.state] = weighted_min_value
+                        node.value_1 = min_value_1
+                        node.value_2 = min_value_2
+                        node.value_3 = min_value_3
+
+                    node.best_action = best_action
 
                     error = abs(V_prev[node.state] - V_new[node.state])
                     if error > max_error:
                         max_error = error
-                    
+
+
                     if return_on_policy_change==True:
                         if prev_best_action != best_action:
                             return False
 
-
-            for node in Z:
-                if node.terminal==False:
-                    if not self.constrained:
-                        node.value_1 = V_new[node.state]
-                    else:
-                        node.value_1 = V_new_1[node.state]
-                        node.value_2 = V_new_2[node.state]
-                        node.value_3 = V_new_3[node.state]
 
             iter += 1
                     
@@ -222,6 +216,104 @@ class VI(object):
                 break
 
         return V_new
+        
+
+
+        
+
+
+    # def value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
+
+    #     # if self.debug_k==15:
+    #     #     for z in Z:
+    #     #         print(z.state)
+    #     #     print(len(Z))
+
+    #     iter=0
+
+    #     V_prev = dict()
+    #     V_new = dict()
+    #     V_new_1 = dict()
+    #     V_new_2 = dict()
+    #     V_new_3 = dict()
+        
+
+
+
+    #     max_error = 10**10
+    #     while not max_error < epsilon:
+    #         max_error = -1
+    #         for node in Z:
+    #             if node.terminal==False:
+                    
+    #                 if not self.constrained:
+    #                     V_prev[node.state] = node.value_1
+    #                 else:
+    #                     V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+
+    #                 actions = self.model.actions(node.state)
+    #                 if not self.constrained:
+    #                     min_value = float('inf')
+    #                 else:
+    #                     min_value = [float('inf')]*self.value_num
+    #                 weighted_min_value = float('inf')
+
+    #                 prev_best_action = node.best_action
+    #                 best_action = None
+
+    #                 for action in actions:
+
+    #                     new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
+
+    #                     if self.constrained==False:  # simple SSP case
+    #                         if new_value_1 < min_value:
+    #                             min_value = new_value_1
+    #                             best_action = action
+
+    #                     else:
+    #                         if self.Lagrangian==False:
+    #                             raise ValueError("need to be implemented for constrained case.")
+    #                         else:
+    #                             weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+
+    #                             if weighted_value < weighted_min_value:
+    #                                 min_value_1 = new_value_1
+    #                                 min_value_2 = new_value_2
+    #                                 min_value_3 = new_value_3
+    #                                 weighted_min_value = weighted_value
+    #                                 best_action = action
+
+    #                 V_new[node.state] = min_value
+    #                 if self.constrained:
+    #                     V_new_1[node.state] = min_value_1
+    #                     V_new_2[node.state] = min_value_2
+    #                     V_new_3[node.state] = min_value_3
+
+    #                 error = abs(V_prev[node.state] - V_new[node.state])
+    #                 if error > max_error:
+    #                     max_error = error
+                    
+    #                 if return_on_policy_change==True:
+    #                     if prev_best_action != best_action:
+    #                         return False
+
+
+    #         for node in Z:
+    #             if node.terminal==False:
+    #                 if not self.constrained:
+    #                     node.value_1 = V_new[node.state]
+    #                 else:
+    #                     node.value_1 = V_new_1[node.state]
+    #                     node.value_2 = V_new_2[node.state]
+    #                     node.value_3 = V_new_3[node.state]
+
+    #         iter += 1
+                    
+    #         if iter > max_iter:
+    #             print("Maximun number of iteration reached.")
+    #             break
+
+    #     return V_new
     
 
 
@@ -263,17 +355,14 @@ class VI(object):
                                 min_value = new_value_1
 
                         else:
-                            if self.Lagrangian==False:
-                                raise ValueError("need to be implemented for constrained case.")
-                            else:
-                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                            weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
 
-                                if weighted_value < weighted_min_value:
-                                    min_value_1 = new_value_1
-                                    min_value_2 = new_value_2
-                                    min_value_3 = new_value_3
-                                    weighted_min_value = weighted_value
-                                    best_action = action
+                            if weighted_value < weighted_min_value:
+                                min_value_1 = new_value_1
+                                min_value_2 = new_value_2
+                                min_value_3 = new_value_3
+                                weighted_min_value = weighted_value
+                                best_action = action
                                     
 
                     if not self.constrained:
@@ -327,4 +416,74 @@ class VI(object):
 
 
 
+    def compute_weighted_value(self,value_1, value_2, value_3):
+
+        if self.value_num == 1:
+            raise ValueError("seems there is no constraint but weighted value is being computed.")
+
+        elif self.value_num == 2:
+            weighted_cost = value_1 + self.alpha[0]*(value_2 - self.bounds[0])
+
+        elif self.value_num == 3:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3
+
+        return weighted_cost
     
+
+
+    
+    def policy_evaluation(self, policy, epsilon=1e-50):
+
+        V_prev = dict()
+        V_new = dict()
+        
+        max_error = 10**10
+        while not max_error < epsilon:
+            max_error = -1
+
+            for state, node in self.graph.nodes.items():
+                if node.terminal==False:
+                    
+                    if not self.constrained:
+                        V_prev[node.state] = node.value_1
+                    else:
+                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+
+ 
+                    
+                    if not self.constrained:
+                        min_value = float('inf')
+                    else:
+                        min_value = [float('inf')]*self.value_num
+                        
+                    weighted_min_value = float('inf')
+
+                        
+                    new_value_1, new_value_2, new_value_3 = self.compute_value(node,policy[node.state])
+
+                    if self.constrained==False:  # simple SSP case
+                        min_value = new_value_1
+                        
+
+                    else:
+                        weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+
+                        min_value_1 = new_value_1
+                        min_value_2 = new_value_2
+                        min_value_3 = new_value_3
+                        weighted_min_value = weighted_value
+
+
+                    if not self.constrained:
+                        V_new[node.state] = min_value
+                        node.value_1 = min_value
+                    else:
+                        V_new[node.state] = weighted_min_value
+                        node.value_1 = min_value_1
+                        node.value_2 = min_value_2
+                        node.value_3 = min_value_3
+
+
+                    error = abs(V_prev[node.state] - V_new[node.state])
+                    if error > max_error:
+                        max_error = error
