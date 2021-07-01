@@ -44,6 +44,9 @@ class RaceTrackModel(object):
             self.heuristic_dict = None
 
 
+        # self.traj_check_dict = dict()
+
+
     def read_map(self, map_file):
 
         self.ontrack_pos_set = []
@@ -89,11 +92,19 @@ class RaceTrackModel(object):
 
 
         if self.traj_check_dict:
-            new_state_result = self.traj_check_dict[str((state[0],state[1],new_state[0],new_state[1]))]
-            slip_state_result = self.traj_check_dict[str((state[0],state[1],slip_state[0],slip_state[1]))]
+            # if str((state[0],state[1],new_state[0],new_state[1])) in self.traj_check_dict:
+            #     new_state_result = self.traj_check_dict[str((state[0],state[1],new_state[0],new_state[1]))]
+            #     slip_state_result = self.traj_check_dict[str((state[0],state[1],slip_state[0],slip_state[1]))]
+            # else:
+            new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])
+            slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
+
         else:
             new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])
             slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
+
+        # self.traj_check_dict[str((state[0],state[1],new_state[0],new_state[1]))] = new_state_result
+        # self.traj_check_dict[str((state[0],state[1],slip_state[0],slip_state[1]))] = slip_state_result
 
         if new_state_result == "crash":
             rand_init_pos = self.init_state[0:2]
@@ -130,7 +141,8 @@ class RaceTrackModel(object):
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
         # if state[0:2] in self.initial_pos_set:
-        if state[1]>=30:
+        if state[1]<=2:
+        # if state[1]>=30:
             cost2 = 10.0
         else:
             cost2 = 0.0
@@ -141,7 +153,10 @@ class RaceTrackModel(object):
         if self.heuristic_dict == None:
             heuristic1 = 0
         else:
+            # if str(state) in self.heuristic_dict:
             heuristic1 = self.heuristic_dict[str(state)] - 1
+            # else:
+            #     heuristic1 = 0
         
         heuristic2 = 0
         return heuristic1, heuristic2

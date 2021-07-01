@@ -170,10 +170,10 @@ class ILAOStar(object):
             
         state = expanded_node.state
 
-        if self.incremental==False:
-            actions = self.model.actions(state)
-        else:
-            raise ValueError("something went wrong. need inspection.")
+        # if self.incremental==False:
+        actions = self.model.actions(state)
+        # else:
+        #     raise ValueError("something went wrong. need inspection.")
             
 
         for action in actions:

@@ -15,6 +15,7 @@ from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
 from LAO_paper_model import LAOModel
 from manual_model import MANUALModel
+from manual_model_2 import MANUALModel2
 
 # from grid import Grid
 # # import functools
@@ -24,6 +25,8 @@ from manual_model import MANUALModel
 
 # import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
+# import numpy as np
+
 import time
 import random
 import cProfile
@@ -54,12 +57,22 @@ def test_LAOStar():
     
     algo = ILAOStar(model,constrained=True,VI_epsilon=1e-1, convergence_epsilon=1e-5,\
                    bounds=bounds,alpha=alpha,Lagrangian=True)
+
     
 
     t = time.time()
     policy = algo.solve()
     print("elapsed time: "+str(time.time()-t))
     print("number of states explored: "+str(len(algo.graph.nodes)))
+
+    
+
+    cssp_solver = CSSPSolver(model,bounds=[0.5])
+
+    model.print_policy(policy)
+
+    for state, node in algo.graph.nodes.items():
+        print(len(cssp_solver.get_ancestors(node)))
     
     value_1 = algo.graph.root.value_1
     # weighted_value = value[0] + alpha[0]*(value[1] - bounds[0]) + alpha[1]*(value[2] - bounds[1])
@@ -176,7 +189,49 @@ def test_LAOStar_racetrack():
 
     # plt.show()
 
-        
+
+
+
+
+def test_LAOStar_racetrack1():
+    sys.setrecursionlimit(5000)
+
+    map_file = "models/racetrack1.txt"
+    traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    heuristic_file = "models/racetrack1_heuristic.json"
+
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+    # init_state = (0,0)
+    # size = (5,5)
+    # goal = (4,4)
+    # model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+
+    alpha = [0.0]
+    bounds = [1.5]
+
+
+    
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+                   bounds=bounds,alpha=alpha,Lagrangian=True)
+    
+
+    t = time.time()
+    policy = algo.solve()
+    print("elapsed time: "+str(time.time()-t))
+    print("number of states explored: "+str(len(algo.graph.nodes)))
+    
+    primary_value = algo.graph.root.value_1
+    # weighted_value = value[0] + alpha[0]*(value[1] - bounds[0]) + alpha[1]*(value[2] - bounds[1])
+    
+    print(primary_value)    
+
+
+
+
+    
 def test_VI_racetrack():
 
     map_file = "models/racetrack_hard.txt"
@@ -277,6 +332,48 @@ def test_VI_racetrack():
     
 
 
+def test_VI_racetrack1():
+
+    map_file = "models/racetrack1.txt"
+    traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+    # init_state = (0,0)
+    # size = (5,5)
+    # goal = (4,4)
+    # model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+
+    alpha = [0.0]
+    bounds = [1.5]
+
+
+    
+    algo = VI(model,constrained=True,VI_epsilon=1e-100,bounds=bounds, alpha=alpha)
+
+    t = time.time()
+    policy = algo.solve()
+    print("elapsed time: "+str(time.time() - t))
+    print("number of states explored: "+str(len(algo.graph.nodes)))
+    
+    primary_value = algo.graph.root.value_1
+    # weighted_value = value[0] + alpha[0]*(value[1] - bounds[0]) + alpha[1]*(value[2] - bounds[1])
+    
+    print(primary_value)
+
+    cssp_solver = CSSPSolver(model,bounds=[0.5])
+
+    cssp_solver.algo = algo
+
+    print(len(policy))
+
+    for state,action in policy.items():
+        print(len(cssp_solver.get_head(algo.graph.nodes[state])))
+    
+
+
+    
+
 
 def test_racetrack():
 
@@ -340,11 +437,31 @@ def test_racetrack():
     # plt.show()
 
 
+def compute_racetrack_traj_check():
+
+    ## temporarily add "traj_check_dict" in racetrack model property, and add bresenham's result.
+
+    map_file = "models/racetrack1.txt"
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, slip_prob=0.1)
+
+    alpha = [0.0]
+    bounds = [1.5]
+    
+    algo = VI(model,constrained=True,VI_epsilon=1e-100,bounds=bounds, alpha=alpha)
+
+    algo.expand_all()
+
+    with open('models/racetrack1_traj_check_dict.json', 'w') as outfile:
+        json.dump(model.traj_check_dict, outfile)
+    
+
+
 
 def compute_racetrack_heuristic():
 
-    map_file = "models/racetrack_hard.txt"
-    init_state = (3,1,0,0)
+    map_file = "models/racetrack1.txt"
+    init_state = (1,5,0,0)
     model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
 
     algo = VI(model,constrained=False,VI_epsilon=1e-5)
@@ -354,7 +471,7 @@ def compute_racetrack_heuristic():
 
     print(len(heuristic))
 
-    with open('models/racetrack_hard_heuristic.json', 'w') as outfile:
+    with open('models/racetrack1_heuristic.json', 'w') as outfile:
         json.dump(heuristic, outfile)
 
     
@@ -649,13 +766,15 @@ def draw_lower_envelop_multiple_bounds_lb_ub():
 
 def test_dual_alg():
     init_state = (0,0)
-    size = (5,5)
+    size = (10,10)
     goal = (4,4)
     model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
 
     bound = 1.5
 
     cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
+
+    t = time.time()
 
     cssp_solver.solve([[0,0.6]])
 
@@ -667,12 +786,74 @@ def test_dual_alg():
     #     print(cssp_solver.candidate_set)
     
     k_best_solution_set = cssp_solver.k_best_solution_set
+    k = 0
     for solution in k_best_solution_set:
         print("-"*20)
+        k += 1
+        print("num: " + str(k))
         print(solution[0])
         print(solution[1])
         model.print_policy(solution[2])
 
+    print(len(cssp_solver.candidate_set))
+
+    print(time.time() - t)
+
+
+
+
+def test_copy_graph():
+
+
+
+    sys.setrecursionlimit(8000)
+
+    map_file = "models/racetrack1.txt"
+    traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    heuristic_file = "models/racetrack1_heuristic.json"
+
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 5
+
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
+
+    cssp_solver.solve([[0,1.0]])
+
+    policy = cssp_solver.algo.extract_policy()    
+
+
+    t = time.time()
+    a = []
+    for i in range(500):
+        a = cssp_solver.copy_graph(cssp_solver.algo.graph)
+
+    print(time.time() - t)
+
+    
+    t = time.time()
+    b = []
+    for i in range(500):
+        b = cssp_solver.copy_best_graph(cssp_solver.algo.graph)
+
+    print(time.time() - t)
+
+    print(len(b))
+        
+
+    t = time.time()
+    for i in range(500):
+        cssp_solver.return_to_best_graph(cssp_solver.algo.graph, b)
+
+
+    print(time.time() - t)
+    
+
+
+    
     
 
 
@@ -707,6 +888,41 @@ def test_dual_alg_racetrack():
         print(solution[0])
         print(solution[1])
 
+
+
+
+
+def test_dual_alg_racetrack1():
+
+
+    sys.setrecursionlimit(8000)
+
+    map_file = "models/racetrack1.txt"
+    traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    heuristic_file = "models/racetrack1_heuristic.json"
+
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 5
+
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
+
+    cssp_solver.solve([[0,1.0]])
+
+    policy = cssp_solver.algo.extract_policy()
+
+    
+    cssp_solver.incremental_update(2)
+
+    k_best_solution_set = cssp_solver.k_best_solution_set
+    for solution in k_best_solution_set:
+        print("-"*20)
+        print(solution[0])
+        print(solution[1])   
+        
     
 
 
@@ -773,6 +989,57 @@ def test_manual_model():
 
     #     print("children: "+str(children_state))
     #     print("parents: "+str([n.state for n in node.best_parents_set]))
+
+
+def test_manual_model_2():
+
+    model = MANUALModel2(cost=1.0)
+    cssp_solver = CSSPSolver(model,bounds=[1])
+
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+                   bounds=[1.0],alpha=[1.0],Lagrangian=True)
+    
+    policy_1 = algo.solve()
+
+    # head = cssp_solver.get_head(algo.graph.root,algo.graph.nodes["2"])
+    print(policy_1)
+    # print("head: "+str([n.state for n in head]))
+
+    print(algo.graph.root.value_1)
+
+    prob_matrix = []
+
+    for state,action in policy_1.items():
+        if action=="Terminal":
+            continue
+
+        source_node = algo.graph.nodes[state]
+        children = source_node.children[action]
+
+        prob_vector = []
+
+        for state_, action_ in policy_1.items():
+            if action_=="Terminal":
+                continue
+
+            is_state_in = False
+            for child,child_prob in children:
+                if child.state == state_:
+                    prob_vector.append(child_prob)
+                    is_state_in = True
+                    break
+
+            if is_state_in == False:
+                prob_vector.append(0)
+
+        prob_matrix.append(prob_vector)
+
+    prob_matrix = np.matrix(prob_matrix)
+
+    N = np.linalg.inv(np.eye(len(policy_1)-1) - prob_matrix)
+    
+    print(N)
+            
 
 
 def test_grid_model_head():
@@ -892,13 +1159,18 @@ def draw_all_policies():
 test_dual_alg()
 # test_dual_alg_multiple_bounds()
 # test_LAOStar()
+
 # compute_racetrack_heuristic()
+# compute_racetrack_traj_check()
 
 # test_LAOStar_racetrack()
 # draw_lower_envelop_racetrack()
 # test_dual_alg_racetrack()
+# test_dual_alg_racetrack1()
 
 # test_manual_model()
+# test_manual_model_2()
+
 # test_grid_model_head()
 
 # cProfile.run('test_LAOStar_racetrack()')
@@ -909,3 +1181,9 @@ test_dual_alg()
 # draw_lower_envelop_multiple_bounds_lb_ub()
 
 # draw_all_policies()
+
+
+# test_VI_racetrack1()
+# test_LAOStar_racetrack1()
+
+# test_copy_graph()

@@ -407,6 +407,42 @@ class CSSPSolver(object):
             self.algo.graph = self.copy_graph(current_best_graph)
 
 
+    # def incremental_update(self, num_sol):
+
+    #     self.algo.incremental = True
+
+    #     current_best_graph = self.copy_best_graph(self.algo.graph)
+    #     current_best_policy = self.algo.extract_policy()
+
+    #     for k in range(num_sol-1):
+
+    #         for state,best_action in current_best_policy.items():
+
+    #             if best_action=="Terminal":
+    #                 continue
+
+    #             node = self.algo.graph.nodes[state]
+    #             new_candidate = self.find_candidate(node)
+
+    #             if new_candidate:
+    #                 if self.candidate_exists(new_candidate):
+    #                     self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
+    #                     continue
+    #                 else:
+    #                     heappush(self.candidate_set, new_candidate)
+    #             else:
+    #                 continue
+
+    #             self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
+
+
+    #        # time.sleep(1000)
+                
+    #         current_best_graph, current_best_policy = self.find_next_best()
+    #         self.return_to_best_graph(self.algo.graph, current_best_graph)     
+            
+
+
 
     def find_candidate(self, node):
         
@@ -427,6 +463,9 @@ class CSSPSolver(object):
 
         self.candidate_idx += 1
 
+        new_best_graph = self.copy_best_graph(self.algo.graph)
+
+        # return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), new_best_graph, policy)
         return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), self.copy_graph(self.algo.graph), policy)
 
 
@@ -624,3 +663,50 @@ class CSSPSolver(object):
         new_graph.root = new_graph.nodes[self.model.init_state]
 
         return new_graph
+
+
+
+
+    def copy_best_graph(self, graph):
+
+        copied_best_graph = dict()
+
+        queue = set([self.graph.root])
+
+        while queue:
+
+            node = queue.pop()
+
+            if node.state in copied_best_graph:
+                continue
+
+            else:
+                if node.best_action!=None:
+                    copied_best_graph[node.state] = (node.best_action, node.value_1, node.value_2, node.value_3, node.children, node.best_parents_set)
+                    children = node.children[node.best_action]
+
+                    for child,child_prob in children:
+                        queue.add(child)
+
+                elif node.terminal==True:
+                    copied_best_graph[node.state] = (node.best_action, node.value_1, node.value_2, node.value_3, node.children, node.best_parents_set)
+
+                else:
+                    raise ValueError("Best partial graph has non-expanded fringe node.")
+
+        return copied_best_graph
+
+
+    
+    def return_to_best_graph(self, graph, copied_best_graph):
+
+        for state, contents in copied_best_graph.items():
+
+            node = graph.nodes[state]
+            
+            node.best_action = contents[0]
+            node.value_1 = contents[1]
+            node.value_2 = contents[2]
+            node.value_3 = contents[3]
+            node.children = contents[4]
+            node.best_parents_set = contents[5]
