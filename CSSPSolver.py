@@ -370,48 +370,13 @@ class CSSPSolver(object):
 
 
         
-    def incremental_update(self, num_sol):
-
-        self.algo.incremental = True
-
-
-
-        current_best_graph = self.copy_graph(self.algo.graph)
-        current_best_policy = self.algo.extract_policy()
-
-        for k in range(num_sol-1):
-
-            for state,best_action in current_best_policy.items():
-
-                if best_action=="Terminal":
-                    continue
-
-                node = self.algo.graph.nodes[state]
-                new_candidate = self.find_candidate(node)
-
-                if new_candidate:
-                    if self.candidate_exists(new_candidate):
-                        self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
-                        continue
-                    else:
-                        heappush(self.candidate_set, new_candidate)
-                else:
-                    continue
-
-                self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
-
-
-           # time.sleep(1000)
-                
-            current_best_graph, current_best_policy = self.find_next_best()
-            self.algo.graph = self.copy_graph(current_best_graph)
-
-
     # def incremental_update(self, num_sol):
 
     #     self.algo.incremental = True
 
-    #     current_best_graph = self.copy_best_graph(self.algo.graph)
+
+
+    #     current_best_graph = self.copy_graph(self.algo.graph)
     #     current_best_policy = self.algo.extract_policy()
 
     #     for k in range(num_sol-1):
@@ -426,20 +391,55 @@ class CSSPSolver(object):
 
     #             if new_candidate:
     #                 if self.candidate_exists(new_candidate):
-    #                     self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
+    #                     self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
     #                     continue
     #                 else:
     #                     heappush(self.candidate_set, new_candidate)
     #             else:
     #                 continue
 
-    #             self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
+    #             self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
 
 
     #        # time.sleep(1000)
                 
     #         current_best_graph, current_best_policy = self.find_next_best()
-    #         self.return_to_best_graph(self.algo.graph, current_best_graph)     
+    #         self.algo.graph = self.copy_graph(current_best_graph)
+
+
+    def incremental_update(self, num_sol):
+
+        self.algo.incremental = True
+
+        current_best_graph = self.copy_best_graph(self.algo.graph)
+        current_best_policy = self.algo.extract_policy()
+
+        for k in range(num_sol-1):
+
+            for state,best_action in current_best_policy.items():
+
+                if best_action=="Terminal":
+                    continue
+
+                node = self.algo.graph.nodes[state]
+                new_candidate = self.find_candidate(node)
+
+                if new_candidate:
+                    if self.candidate_exists(new_candidate):
+                        self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
+                        continue
+                    else:
+                        heappush(self.candidate_set, new_candidate)
+                else:
+                    continue
+
+                self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
+
+
+           # time.sleep(1000)
+                
+            current_best_graph, current_best_policy = self.find_next_best()
+            self.return_to_best_graph(self.algo.graph, current_best_graph)     
             
 
 
@@ -465,8 +465,8 @@ class CSSPSolver(object):
 
         new_best_graph = self.copy_best_graph(self.algo.graph)
 
-        # return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), new_best_graph, policy)
-        return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), self.copy_graph(self.algo.graph), policy)
+        return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), new_best_graph, policy)
+        # return (weighted_value, self.candidate_idx, (value_1,value_2,value_3), self.copy_graph(self.algo.graph), policy)
 
 
 
