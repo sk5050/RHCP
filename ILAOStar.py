@@ -206,7 +206,11 @@ class ILAOStar(object):
 
         Z = self.get_best_solution_nodes()
 
-        return self.value_iteration(Z, epsilon=self.convergence_epsilon, return_on_policy_change=True)
+        if self.incremental == False:
+            return self.value_iteration(Z, epsilon=self.convergence_epsilon, return_on_policy_change=True)
+
+        else:
+            return self.prioritized_value_iteration(Z, epsilon=self.convergence_epsilon, return_on_policy_change=True)
 
 
     def get_best_solution_nodes(self):
@@ -353,8 +357,123 @@ class ILAOStar(object):
                 print("Maximun number of iteration reached.")
                 break
 
+        # print(iter)
         return V_new
 
+
+
+
+    def prioritized_value_iteration(self, Z, epsilon=1e-50, max_iter=100000,return_on_policy_change=False):
+
+        iter=0
+
+        V_prev = dict()
+        V_new = dict()
+        
+        max_error = 10**10
+        while not max_error < epsilon:
+            max_error = -1
+
+            queue = set([self.tweaking_node])
+            visited = set()
+
+            while queue:
+
+                next_parents = set()
+
+                while queue:
+
+                    node = queue.pop()
+                    visited.add(node)
+
+                    if node.terminal==False and node.best_action!=None:
+
+                        if not self.constrained:
+                            V_prev[node.state] = node.value_1
+                        else:
+                            V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+
+
+                        if self.incremental==False:
+                            actions = self.model.actions(node.state)
+                        else:
+                            actions = self.incremental_update_action_model(node)                       
+
+
+                        if not self.constrained:
+                            min_value = float('inf')
+                        else:
+                            min_value = [float('inf')]*self.value_num
+                        weighted_min_value = float('inf')
+
+                        prev_best_action = node.best_action
+                        best_action = None
+
+                        for action in actions:
+
+                            new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
+
+                            if self.constrained==False:  # simple SSP case
+                                if new_value_1 < min_value:
+                                    min_value = new_value_1
+                                    best_action = action
+
+                            else:
+                                if self.Lagrangian==False:
+                                    raise ValueError("need to be implemented for constrained case.")
+                                else:
+                                    weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+
+                                    if weighted_value < weighted_min_value:
+                                        min_value_1 = new_value_1
+                                        min_value_2 = new_value_2
+                                        min_value_3 = new_value_3
+                                        weighted_min_value = weighted_value
+                                        best_action = action
+
+
+                        if not self.constrained:
+                            V_new[node.state] = min_value
+                            node.value_1 = min_value
+                        else:
+                            V_new[node.state] = weighted_min_value
+                            node.value_1 = min_value_1
+                            node.value_2 = min_value_2
+                            node.value_3 = min_value_3
+
+                        node.best_action = best_action
+
+
+                        error = abs(V_prev[node.state] - V_new[node.state])
+                        if error > max_error:
+                            max_error = error
+
+
+                        if return_on_policy_change==True:
+                            if prev_best_action != best_action:
+                                return False
+
+
+                    parents = node.best_parents_set
+
+                    for parents_node in parents:
+                        if parents_node not in visited:
+                            next_parents.add(parents_node)
+
+                queue = next_parents
+                    
+
+            iter += 1
+                    
+            if iter > max_iter:
+                print("Maximun number of iteration reached.")
+                break
+
+        # print(iter)
+        return V_new
+    
+
+    
 
     
 

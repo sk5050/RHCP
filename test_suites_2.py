@@ -793,7 +793,7 @@ def test_dual_alg():
         print("num: " + str(k))
         print(solution[0])
         print(solution[1])
-        model.print_policy(solution[2])
+        # model.print_policy(solution[2])
 
     print(len(cssp_solver.candidate_set))
 
@@ -910,12 +910,14 @@ def test_dual_alg_racetrack1():
 
     cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
 
+    t = time.time()
+
     cssp_solver.solve([[0,1.0]])
 
     policy = cssp_solver.algo.extract_policy()
 
     
-    cssp_solver.incremental_update(2)
+    cssp_solver.incremental_update(5)
 
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
@@ -923,7 +925,7 @@ def test_dual_alg_racetrack1():
         print(solution[0])
         print(solution[1])   
         
-    
+    print(time.time() - t)
 
 
 def test_dual_alg_multiple_bounds():
