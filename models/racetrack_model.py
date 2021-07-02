@@ -92,12 +92,12 @@ class RaceTrackModel(object):
 
 
         if self.traj_check_dict:
-            # if str((state[0],state[1],new_state[0],new_state[1])) in self.traj_check_dict:
-            #     new_state_result = self.traj_check_dict[str((state[0],state[1],new_state[0],new_state[1]))]
-            #     slip_state_result = self.traj_check_dict[str((state[0],state[1],slip_state[0],slip_state[1]))]
-            # else:
-            new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])
-            slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
+            if str((state[0],state[1],new_state[0],new_state[1])) in self.traj_check_dict:
+                new_state_result = self.traj_check_dict[str((state[0],state[1],new_state[0],new_state[1]))]
+                slip_state_result = self.traj_check_dict[str((state[0],state[1],slip_state[0],slip_state[1]))]
+            else:
+                new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])
+                slip_state_result = self.bresenham_check_crash(state[0],state[1],slip_state[0],slip_state[1])
 
         else:
             new_state_result = self.bresenham_check_crash(state[0],state[1],new_state[0],new_state[1])

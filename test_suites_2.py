@@ -875,12 +875,15 @@ def test_dual_alg_racetrack():
 
     cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
 
+    t = time.time()
+
     cssp_solver.solve([[0,1.0]])
 
     policy = cssp_solver.algo.extract_policy()
 
+    cssp_solver.candidate_pruning = True
     
-    cssp_solver.incremental_update(3)
+    cssp_solver.incremental_update(2)
 
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
@@ -888,7 +891,7 @@ def test_dual_alg_racetrack():
         print(solution[0])
         print(solution[1])
 
-
+    print(time.time() - t)
 
 
 
@@ -916,8 +919,10 @@ def test_dual_alg_racetrack1():
 
     policy = cssp_solver.algo.extract_policy()
 
-    
-    cssp_solver.incremental_update(5)
+
+    cssp_solver.candidate_pruning = True
+
+    cssp_solver.incremental_update(10)
 
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
@@ -926,6 +931,8 @@ def test_dual_alg_racetrack1():
         print(solution[1])   
         
     print(time.time() - t)
+
+    print(cssp_solver.anytime_solutions)
 
 
 def test_dual_alg_multiple_bounds():
@@ -1158,7 +1165,7 @@ def draw_all_policies():
 
 
 # draw_lower_envelop()
-test_dual_alg()
+# test_dual_alg()
 # test_dual_alg_multiple_bounds()
 # test_LAOStar()
 
@@ -1168,7 +1175,7 @@ test_dual_alg()
 # test_LAOStar_racetrack()
 # draw_lower_envelop_racetrack()
 # test_dual_alg_racetrack()
-# test_dual_alg_racetrack1()
+test_dual_alg_racetrack1()
 
 # test_manual_model()
 # test_manual_model_2()

@@ -10,6 +10,9 @@ from ILAOStar import ILAOStar
 import copy
 from heapq import *
 
+
+import numpy as np
+
 class CSSPSolver(object):
 
     def __init__(self, model, VI_epsilon=1e-50, VI_max_iter=100000, convergence_epsilon=1e-50, resolve_epsilon=1e-5, bounds=[]):
@@ -32,7 +35,12 @@ class CSSPSolver(object):
         self.candidate_set = []
         self.current_best_policy = None
 
-        self.candidate_idx = 0   ## this index is used for tie-breaking in heap queue. 
+        self.candidate_idx = 0   ## this index is used for tie-breaking in heap queue.
+
+        self.candidate_pruning = False
+
+        self.t_start = time.time()
+        self.anytime_solutions = []
 
 
     def solve(self, initial_alpha_set):
@@ -64,6 +72,8 @@ class CSSPSolver(object):
         print("     f: "+str(f_plus))
         print("     g: "+str(g_plus))
 
+        self.add_anytime_solution(f_plus,g_plus)
+
         # print("-------------------------------")
         # print(f_plus + self.algo.alpha[0]*g_plus)
         # print("-------------------------------")
@@ -82,6 +92,8 @@ class CSSPSolver(object):
 
         f_minus = value_1
         g_minus = value_2 - self.bounds[0]
+
+        self.add_anytime_solution(f_plus,g_plus)
 
         print("-"*50)
         print("time elapsed: "+str(time.time() - start_time))
@@ -117,6 +129,8 @@ class CSSPSolver(object):
             L_u = value_1 + alpha*(value_2 - self.bounds[0])
             f = value_1
             g = value_2 - self.bounds[0]
+
+            self.add_anytime_solution(f_plus,g_plus)
 
             print("-"*50)
             print("time elapsed: "+str(time.time() - start_time))
@@ -416,13 +430,16 @@ class CSSPSolver(object):
 
         for k in range(num_sol-1):
 
-            for state,best_action in current_best_policy.items():
+            t = 0
 
-                if best_action=="Terminal":
-                    continue
+            candidate_generating_states = self.prune_candidates(current_best_policy)
+
+            for state,head,blocked_action_set in candidate_generating_states:
+
+                t += 1
 
                 node = self.algo.graph.nodes[state]
-                new_candidate = self.find_candidate(node)
+                new_candidate = self.find_candidate(node,head,blocked_action_set)
 
                 if new_candidate:
                     if self.candidate_exists(new_candidate):
@@ -435,19 +452,24 @@ class CSSPSolver(object):
 
                 self.return_to_best_graph(self.algo.graph, current_best_graph)  ## returning to the previous graph.
 
-
-           # time.sleep(1000)
-                
             current_best_graph, current_best_policy = self.find_next_best()
             self.return_to_best_graph(self.algo.graph, current_best_graph)     
             
+            print(t)
 
 
-
-    def find_candidate(self, node):
+    def find_candidate(self, node, head, blocked_action_set):
         
-        self.algo.head = self.get_head(node)
-        self.algo.blocked_action_set = self.get_blocked_action_set(node,self.algo.head)
+        # self.algo.head = self.get_head(node)
+        # self.algo.blocked_action_set = self.get_blocked_action_set(node,self.algo.head)
+
+        # if self.algo.blocked_action_set != blocked_action_set:
+        #     print("-----------------")
+        #     print(self.algo.blocked_action_set)
+        #     print(blocked_action_set)
+            
+        self.algo.head = head
+        self.algo.blocked_action_set = blocked_action_set
         self.algo.tweaking_node = node
 
         ## if all actions are blocked, then no candidate is generated. 
@@ -460,6 +482,8 @@ class CSSPSolver(object):
 
         value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
         weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+
+        self.add_anytime_solution(value_1, value_2 - self.bounds[0])
 
         self.candidate_idx += 1
 
@@ -710,3 +734,176 @@ class CSSPSolver(object):
             node.value_3 = contents[3]
             node.children = contents[4]
             node.best_parents_set = contents[5]
+
+
+
+
+
+
+    def prune_candidates(self, current_best_policy):
+
+        if self.candidate_pruning==False or (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+            candidate_generating_states = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+
+                    node = self.algo.graph.nodes[state]
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    
+                    candidate_generating_states.append((state,head,blocked_action_set))
+
+            return candidate_generating_states
+
+        else:
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+            L = self.compute_likelihoods(state_list)
+
+            policy_value = self.algo.graph.root.value_1
+            weighted_value_diff_list = []
+            blocked_action_set_list = []
+            head_list = []
+
+            for state in state_list:
+                node = self.algo.graph.nodes[state]
+                head = self.get_head(node)
+                blocked_action_set = self.get_blocked_action_set(node,head)
+
+                blocked_action_set_list.append(blocked_action_set)
+                head_list.append(head)
+                
+                prev_value = node.value_1
+                possible_actions = self.model.actions(state)
+                value_diff_list = []
+
+                for action in possible_actions:
+                    if action in blocked_action_set:
+                        continue
+
+                    new_value_1, new_value_2 = self.model.cost(state,action)
+
+                    children = node.children[action]
+                    for child, child_prob in children:
+                        heuristic_1, heuristic_2 = self.model.heuristic(child.state)
+                        new_value_1 += child_prob * heuristic_1
+
+                    value_diff_list.append(prev_value - new_value_1)
+
+                max_value_diff = max(value_diff_list)
+
+                idx = state_list.index(state)
+                weighted_value_diff = L[idx]*max_value_diff
+
+                weighted_value_diff_list.append(weighted_value_diff / policy_value)
+
+            sorted_states = [(state,head,blocked_action_set) for weighted_value_diff, state, head, blocked_action_set in \
+                             sorted(zip(weighted_value_diff_list, state_list, head_list, blocked_action_set_list))]
+            
+            weighted_value_diff_list.sort()
+
+            prob = 0
+            k = 0
+            for i in weighted_value_diff_list:
+                k += 1
+                prob += i
+
+                if prob >= 0.01:
+                    break
+
+
+            candidate_generating_states = sorted_states[k:]
+
+            return candidate_generating_states
+
+
+
+    # def compute_likelihoods(self, state_list):
+
+    #     Q = []
+    #     root_idx = None
+
+    #     for state in state_list:
+
+    #         if state==self.model.init_state:
+    #             root_idx = state_list.index(state)
+
+    #         Q_vector = [0]*len(state_list)
+
+    #         node = self.algo.graph.nodes[state]
+    #         children = node.children[node.best_action]
+
+    #         for child, child_prob in children:
+    #             if child.terminal != True:
+    #                 idx = state_list.index(child.state)
+    #                 Q_vector[idx] = child_prob
+
+    #         Q.append(Q_vector)
+
+    #     Q = np.matrix(Q)
+    #     N = np.linalg.inv(np.eye(len(Q_vector)) - Q)
+
+    #     L = N[0] / N[0,root_idx]
+
+    #     return L
+
+
+    def compute_likelihoods(self, state_list):
+
+        num_states = len(state_list)
+        
+        Q = np.empty((num_states, num_states))
+        root_idx = None
+
+        i = 0
+        for state in state_list:
+
+            if state==self.model.init_state:
+                root_idx = state_list.index(state)
+
+            Q_vector = np.zeros(num_states)
+
+            node = self.algo.graph.nodes[state]
+            children = node.children[node.best_action]
+
+            for child, child_prob in children:
+                if child.terminal != True:
+                    idx = state_list.index(child.state)
+                    Q_vector[idx] = child_prob
+
+            Q[i,:] = Q_vector
+            
+            i += 1
+
+
+        t = time.time()
+        I = np.identity(num_states)
+        o = np.zeros(num_states)
+        o[root_idx] = 1
+        L = np.linalg.solve(np.transpose(I-Q), o)
+        L = L / L[root_idx]
+
+        # N = np.linalg.inv(np.eye(num_states) - Q)
+        # L = N[root_idx] / N[root_idx, root_idx]
+
+        # L = N[0] / N[0,root_idx]
+
+        return L    
+
+
+
+    def add_anytime_solution(self, f, g):
+
+        if g<0:
+
+            if len(self.anytime_solutions)==0:
+                self.anytime_solutions.append((f, time.time() - self.t_start))
+
+            else:
+
+                if self.anytime_solutions[-1][0] > f:
+                    self.anytime_solutions.append((f, time.time() - self.t_start))

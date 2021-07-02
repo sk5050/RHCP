@@ -2,6 +2,7 @@ import os
 import sys
 import operator
 
+
 multiadd = lambda a,b: map(operator.add, a,b)
 
 def ptw_add(v1,v2):
@@ -27,3 +28,6 @@ def dot(v1,v2):
 
 def import_models():
     sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/models/')
+
+
+
