@@ -193,7 +193,7 @@ class ILAOStar(object):
                     if self.model.is_terminal(child.state):
                         child.set_terminal()
                 
-                # child.parents_set.add(expanded_node)
+                child.parents_set.add(expanded_node)
                 children_list.append([child,child_prob])
 
             expanded_node.children[action] = children_list
@@ -720,8 +720,8 @@ class ILAOStar(object):
         while not max_error < epsilon:
             max_error = -1
             
-            for node in self.graph.nodes:
-                if node.terminal==False:
+            for state, node in self.graph.nodes.items():
+                if node.terminal==False and state in policy:
                     
                     if not self.constrained:
                         V_prev[node.state] = node.value_1
@@ -729,11 +729,6 @@ class ILAOStar(object):
                         V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
 
  
-                    if self.incremental==False:
-                        actions = self.model.actions(node.state)
-                    else:
-                        actions = self.incremental_update_action_model(node)                       
-                        
                     
                     if not self.constrained:
                         min_value = float('inf')

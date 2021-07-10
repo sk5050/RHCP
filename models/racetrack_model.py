@@ -52,6 +52,7 @@ class RaceTrackModel(object):
         self.ontrack_pos_set = []
         self.initial_pos_set = []
         self.finishline_pos_set = []
+        self.constrained_pos_set = []
 
         map_text = open(map_file, 'r')
         lines = map_text.readlines()
@@ -68,9 +69,13 @@ class RaceTrackModel(object):
                 elif char=="f":
                     self.finishline_pos_set.append((x,y))
 
+                elif char=="x":
+                    self.constrained_pos_set.append((x,y))
+
                 x += 1
 
             y += 1
+
             
 
         
@@ -131,7 +136,10 @@ class RaceTrackModel(object):
             if slip_state_result != "ontrack":
                 raise ValueError("trajectory result is invalid!")
 
-        new_states = [[new_state, 1-self.slip_prob], [slip_state, self.slip_prob]]
+        if new_state==slip_state:
+            new_states = [[new_state, 1.0]]
+        else:
+            new_states = [[new_state, 1-self.slip_prob], [slip_state, self.slip_prob]]
 
         return new_states
 
@@ -141,8 +149,11 @@ class RaceTrackModel(object):
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
         # if state[0:2] in self.initial_pos_set:
-        if state[1]<=2:
-        # if state[1]>=30:
+        # if state[1]<=1: ## simple
+        # if state[0]>=26: ## easy
+        # if state[1]<=2 or state[0]>=35: ## racetrack1
+        # if state[1]>=30 or state[0]>=29: ## hard
+        if (state[0], state[1]) in self.constrained_pos_set:
             cost2 = 10.0
         else:
             cost2 = 0.0
@@ -156,7 +167,7 @@ class RaceTrackModel(object):
             # if str(state) in self.heuristic_dict:
             heuristic1 = self.heuristic_dict[str(state)] - 1
             # else:
-            #     heuristic1 = 0
+            # heuristic1 = 0
         
         heuristic2 = 0
         return heuristic1, heuristic2

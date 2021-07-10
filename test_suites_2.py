@@ -16,6 +16,7 @@ from racetrack_model import RaceTrackModel
 from LAO_paper_model import LAOModel
 from manual_model import MANUALModel
 from manual_model_2 import MANUALModel2
+from manual_model_3 import MANUALModel3
 
 # from grid import Grid
 # # import functools
@@ -25,7 +26,7 @@ from manual_model_2 import MANUALModel2
 
 # import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
-# import numpy as np
+import numpy as np
 
 import time
 import random
@@ -441,8 +442,8 @@ def compute_racetrack_traj_check():
 
     ## temporarily add "traj_check_dict" in racetrack model property, and add bresenham's result.
 
-    map_file = "models/racetrack1.txt"
-    init_state = (1,5,0,0)
+    map_file = "models/racetrack_simple.txt"
+    init_state = (1,2,0,0)
     model = RaceTrackModel(map_file, init_state=init_state, slip_prob=0.1)
 
     alpha = [0.0]
@@ -452,7 +453,7 @@ def compute_racetrack_traj_check():
 
     algo.expand_all()
 
-    with open('models/racetrack1_traj_check_dict.json', 'w') as outfile:
+    with open('models/racetrack_simple_traj_check_dict.json', 'w') as outfile:
         json.dump(model.traj_check_dict, outfile)
     
 
@@ -460,8 +461,8 @@ def compute_racetrack_traj_check():
 
 def compute_racetrack_heuristic():
 
-    map_file = "models/racetrack1.txt"
-    init_state = (1,5,0,0)
+    map_file = "models/racetrack_simple.txt"
+    init_state = (1,2,0,0)
     model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
 
     algo = VI(model,constrained=False,VI_epsilon=1e-5)
@@ -471,7 +472,7 @@ def compute_racetrack_heuristic():
 
     print(len(heuristic))
 
-    with open('models/racetrack1_heuristic.json', 'w') as outfile:
+    with open('models/racetrack_simple_heuristic.json', 'w') as outfile:
         json.dump(heuristic, outfile)
 
     
@@ -770,7 +771,7 @@ def test_dual_alg():
     goal = (4,4)
     model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
 
-    bound = 1.5
+    bound = 25
 
     cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
 
@@ -780,8 +781,10 @@ def test_dual_alg():
 
     policy = cssp_solver.algo.extract_policy()
 
+    cssp_solver.candidate_pruning = True
+
     # try:
-    cssp_solver.incremental_update(20)
+    cssp_solver.incremental_update(5)
     # except:
     #     print(cssp_solver.candidate_set)
     
@@ -798,6 +801,8 @@ def test_dual_alg():
     print(len(cssp_solver.candidate_set))
 
     print(time.time() - t)
+
+    print(cssp_solver.anytime_solutions)
 
 
 
@@ -871,7 +876,7 @@ def test_dual_alg_racetrack():
     # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
 
 
-    bound = 5
+    bound = 1
 
     cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
 
@@ -893,6 +898,7 @@ def test_dual_alg_racetrack():
 
     print(time.time() - t)
 
+    print(cssp_solver.anytime_solutions)
 
 
 def test_dual_alg_racetrack1():
@@ -922,7 +928,7 @@ def test_dual_alg_racetrack1():
 
     cssp_solver.candidate_pruning = True
 
-    cssp_solver.incremental_update(10)
+    cssp_solver.incremental_update(5)
 
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
@@ -931,6 +937,7 @@ def test_dual_alg_racetrack1():
         print(solution[1])   
         
     print(time.time() - t)
+    print(len(cssp_solver.candidate_set))
 
     print(cssp_solver.anytime_solutions)
 
@@ -1016,39 +1023,109 @@ def test_manual_model_2():
 
     print(algo.graph.root.value_1)
 
-    prob_matrix = []
 
-    for state,action in policy_1.items():
-        if action=="Terminal":
-            continue
+    print(algo.graph.root.value_1)
+    print(algo.graph.nodes["1"].value_1)
+    print(algo.graph.nodes["2"].value_1)
 
-        source_node = algo.graph.nodes[state]
-        children = source_node.children[action]
-
-        prob_vector = []
-
-        for state_, action_ in policy_1.items():
-            if action_=="Terminal":
-                continue
-
-            is_state_in = False
-            for child,child_prob in children:
-                if child.state == state_:
-                    prob_vector.append(child_prob)
-                    is_state_in = True
-                    break
-
-            if is_state_in == False:
-                prob_vector.append(0)
-
-        prob_matrix.append(prob_vector)
-
-    prob_matrix = np.matrix(prob_matrix)
-
-    N = np.linalg.inv(np.eye(len(policy_1)-1) - prob_matrix)
-    
+    Q = np.array([[0,0.5,0.5],[0.1,0,0.1],[0,0,0]])
+    N = np.linalg.inv(np.eye(3) - Q)
     print(N)
-            
+
+
+    
+
+    # prob_matrix = []
+
+    # for state,action in policy_1.items():
+    #     if action=="Terminal":
+    #         continue
+
+    #     source_node = algo.graph.nodes[state]
+    #     children = source_node.children[action]
+
+    #     prob_vector = []
+
+    #     for state_, action_ in policy_1.items():
+    #         if action_=="Terminal":
+    #             continue
+
+    #         is_state_in = False
+    #         for child,child_prob in children:
+    #             if child.state == state_:
+    #                 prob_vector.append(child_prob)
+    #                 is_state_in = True
+    #                 break
+
+    #         if is_state_in == False:
+    #             prob_vector.append(0)
+
+    #     prob_matrix.append(prob_vector)
+
+    # prob_matrix = np.matrix(prob_matrix)
+
+    # N = np.linalg.inv(np.eye(len(policy_1)-1) - prob_matrix)
+    
+    # print(N)
+
+
+
+
+def test_manual_model_3():
+
+    model = MANUALModel3(cost=1.0)
+    cssp_solver = CSSPSolver(model,bounds=[1])
+
+    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-5, convergence_epsilon=1e-5,\
+                   bounds=[1.0],alpha=[1.0],Lagrangian=True)
+    
+    policy_1 = algo.solve()
+
+    # head = cssp_solver.get_head(algo.graph.root,algo.graph.nodes["2"])
+    print(policy_1)
+    # print("head: "+str([n.state for n in head]))
+
+    print(algo.graph.root.value_1)
+    print(algo.graph.nodes["1"].value_1)
+    print(algo.graph.nodes["2"].value_1)
+
+    Q = np.array([[0,0.5,0.5],[0,0,0],[0,0,0]])
+    N = np.linalg.inv(np.eye(3) - Q)
+    print(N)
+
+    # prob_matrix = []
+
+    # for state,action in policy_1.items():
+    #     if action=="Terminal":
+    #         continue
+
+    #     source_node = algo.graph.nodes[state]
+    #     children = source_node.children[action]
+
+    #     prob_vector = []
+
+    #     for state_, action_ in policy_1.items():
+    #         if action_=="Terminal":
+    #             continue
+
+    #         is_state_in = False
+    #         for child,child_prob in children:
+    #             if child.state == state_:
+    #                 prob_vector.append(child_prob)
+    #                 is_state_in = True
+    #                 break
+
+    #         if is_state_in == False:
+    #             prob_vector.append(0)
+
+    #     prob_matrix.append(prob_vector)
+
+    # prob_matrix = np.matrix(prob_matrix)
+
+    # N = np.linalg.inv(np.eye(len(policy_1)-1) - prob_matrix)
+    
+    # print(N)
+    
 
 
 def test_grid_model_head():
@@ -1164,6 +1241,437 @@ def draw_all_policies():
 
 
 
+
+
+
+def test_pruning_rule():
+
+
+    # init_state = (0,0)
+    # size = (10,10)
+    # goal = (4,4)
+    # model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+
+    # bound = 1.5
+
+    # cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-200)
+
+    # t = time.time()
+
+    # cssp_solver.solve([[0,0.6]])
+
+
+    
+    # policy = cssp_solver.algo.extract_policy()
+
+
+    # testing_states = [(7,7), (3,5), (1,6), (1,1),(2,1),(3,1), (3,3),(1,3)]
+
+    # z = 7
+
+
+
+
+    sys.setrecursionlimit(8000)
+
+    map_file = "models/racetrack1.txt"
+    traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    heuristic_file = "models/racetrack1_heuristic.json"
+
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 5
+
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-100,convergence_epsilon=1e-300)
+
+
+    cssp_solver.algo.alpha = [0.0]
+
+    policy = cssp_solver.algo.solve()
+
+    cssp_solver.algo.policy_evaluation(policy, epsilon=1e-100)
+
+    print(cssp_solver.algo.graph.root.value_1)
+
+
+    testing_states_set = [(2, 5, 1, 0), (3, 5, 1, 0), (4, 5, 1, 0), (5, 5, 1, 0), (9, 5, 1, 0), (33, 7, 1, 3), (22, 1, 3, 0), (32, 4, 2, 2),(1,5,0,0)]
+
+
+    z = 2
+    
+    testing_states = [testing_states_set[-1]]
+
+    #####################################################
+
+
+    state_list = []
+    for state, action in policy.items():
+        if action != 'Terminal':
+            state_list.append(state)
+
+
+    num_states = len(state_list)
+        
+    Q = np.empty((num_states, num_states))
+    root_idx = None
+
+    terminal_idx = []
+
+    testing_state_indices = []
+    
+    i = 0
+    for state in state_list:
+
+        if policy[state]=='Terminal':
+            Q[i,:] = np.zeros(num_states)
+            Q[i,i] = 1
+            terminal_idx.append(i)
+            i += 1
+            continue
+
+        if state==model.init_state:
+            root_idx = state_list.index(state)
+
+        if state in testing_states:
+            testing_state_indices.append(state_list.index(state))
+
+        Q_vector = np.zeros(num_states)
+
+        node = cssp_solver.algo.graph.nodes[state]
+        children = node.children[node.best_action]
+
+        # p =0
+        # print(node.best_action)
+        for child, child_prob in children:
+            if child.terminal != True:
+                # print(child.state)
+                idx = state_list.index(child.state)
+                if Q_vector[idx] > 0:
+                    Q_vector[idx] += child_prob
+                else:
+                    Q_vector[idx] = child_prob
+
+            
+             # p+= child_prob
+
+        # print(p)
+        Q[i,:] = Q_vector
+
+        i += 1
+
+    # for i in range(num_states):
+    #     print(sum(Q_vector))
+
+
+    # Q[testing_state_idx,:] = np.zeros(num_states)
+
+    I = np.identity(num_states)
+    N1 = np.linalg.inv(I - Q)
+    R = np.ones(num_states)
+
+    for i in terminal_idx:
+        R[i] = 0
+    
+    V = np.dot(N1, R)
+    print(V[root_idx])
+
+    # Q = np.delete(Q,testing_state_idx,0)
+    # Q = np.delete(Q,testing_state_idx,1)
+
+    for testing_state_idx in testing_state_indices:
+
+        Q[testing_state_idx,:] = np.zeros(num_states)
+        R[testing_state_idx] = 0
+
+    # Q[testing_state_idx, testing_state_idx] = 1
+
+    I = np.identity(num_states)
+    N2 = np.linalg.pinv(I - Q)
+
+
+    V = np.dot(N2, R)
+    print(V[root_idx])
+    print(N2[root_idx,root_idx])
+    
+    ############################################################
+
+
+    nodes = []
+    heads = []
+    for testing_state in testing_states:
+        nodes.append(cssp_solver.algo.graph.nodes[testing_state])
+        heads.append(cssp_solver.get_head(nodes[-1]))
+        # print(len(heads[-1]))
+
+    # print(nodes[1] in heads[0])
+
+    # print("prev testing node's value: " + str(node.value_1))
+
+    
+    new_policy = dict()
+    for state, action in policy.items():
+        state_in_head = True
+        for head in heads:
+            if cssp_solver.algo.graph.nodes[state] not in head:
+                state_in_head = False
+                break
+
+        if state_in_head == True:
+            new_policy[state] = action
+
+    for node in nodes:
+        new_policy[node.state] = 'Terminal'
+        node.terminal = True
+        node.value_1 = 0
+
+    print(cssp_solver.algo.graph.root.value_1)
+    
+
+    cssp_solver.algo.policy_evaluation(new_policy, epsilon=1e-300)
+
+    print(cssp_solver.algo.graph.root.value_1)
+
+
+    # print(testing_state_idx)
+    # print(N[root_idx, testing_state_idx])#/N[root_idx,root_idx])
+    
+
+
+
+
+
+def SM_update(B, u, v):
+    return B - np.outer(B @ u, v @ B) / (1 + v.T @ B @ u)
+
+
+def SM_update_2(B, v, idx):
+    B_ = B[:,idx]
+    out = np.outer(B_,v)
+    return B - (out @ B) / (1 + np.trace(out))
+
+
+def SM_update_3(B, v, n, idx):
+    B_new = np.copy(B)
+    t1 = B[:,idx]
+    t2 = np.empty(n)
+    for i in range(n):
+        t2[i] = np.dot(v, B[:,i])
+
+    l = t2[idx]
+
+    for i in range(n):
+        vt = t1[i] / (1 + l)
+        B[i,:] = B[i,:] - vt*t2
+
+    return B_new
+        
+
+
+def SMInv(Ainv, u, v, e=None): 
+    u = u.reshape((len(u),1)) 
+    v = v.reshape((len(v),1)) 
+    if e is not None: 
+        g = np.dot(Ainv, u) / (e + np.dot(v.T, np.dot(Ainv, u)))
+        return (Ainv / e) - np.dot(g, np.dot(v.T, Ainv/e)) 
+    else: 
+        return Ainv - np.dot(Ainv, np.dot(np.dot(u,v.T), Ainv)) / ( 1 + np.dot(v.T, np.dot(Ainv, u)))
+
+
+def test_pruning_rule_2():
+
+    sys.setrecursionlimit(8000)
+
+    map_file = "models/racetrack1.txt"
+    traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    heuristic_file = "models/racetrack1_heuristic.json"
+
+    init_state = (1,5,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 5
+
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-100,convergence_epsilon=1e-300)
+
+
+    cssp_solver.algo.alpha = [0.0]
+
+    policy = cssp_solver.algo.solve()
+
+    cssp_solver.algo.policy_evaluation(policy, epsilon=1e-100)
+
+    policy_value = cssp_solver.algo.graph.root.value_1
+
+    
+
+    #####################################################
+
+    t = time.time()
+
+
+    state_list = []
+    for state, action in policy.items():
+        if action != 'Terminal':
+            state_list.append(state)
+
+
+    num_states = len(state_list)
+        
+    Q = np.empty((num_states, num_states))
+    root_idx = None
+
+    terminal_idx = []
+    
+    i = 0
+    state_idx_dict = dict()
+    for state in state_list:
+        state_idx_dict[state] = i
+
+        if state==model.init_state:
+            root_idx = state_list.index(state)
+
+        Q_vector = np.zeros(num_states)
+
+        node = cssp_solver.algo.graph.nodes[state]
+        children = node.children[node.best_action]
+
+        for child, child_prob in children:
+            if child.terminal != True:
+                idx = state_list.index(child.state)
+                if Q_vector[idx] > 0:
+                    Q_vector[idx] += child_prob
+                else:
+                    Q_vector[idx] = child_prob
+
+        Q[i,:] = Q_vector
+
+        i += 1
+
+
+
+
+        
+    I = np.identity(num_states)
+    N = np.linalg.inv(I - Q)
+    R = np.ones(num_states)
+
+    epsilon = 0.001
+
+
+    N_vector = N[root_idx]
+
+    sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+    initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<1e-8]
+
+    for pruned_state in initial_pruned_states:
+        state = pruned_state[0]
+        idx = pruned_state[1]
+        Q[idx,:] = np.zeros(num_states)
+        R[idx] = 0
+
+    print(len(initial_pruned_states))
+    
+    N_new = np.linalg.inv(I - Q)
+
+    V = np.dot(N_new, R)
+    new_value = V[root_idx]
+
+    epsilon -= (policy_value - new_value) / policy_value
+
+    prev_value = new_value
+
+
+    if epsilon < 0:
+        raise ValueError("initial pruning was too aggressive!")
+    else:
+        N = N_new
+
+
+    candidate_generating_states = []
+
+    accumulated_head = set(cssp_solver.algo.graph.nodes.values())
+
+    pruned_states = []
+    
+    
+    for state in sorted_states:
+        idx = state_idx_dict[state]
+
+        if (state,idx) in initial_pruned_states:
+            continue
+        
+        node = cssp_solver.algo.graph.nodes[state]
+
+        if node not in accumulated_head:
+            continue
+
+        else:
+            
+            v = Q[idx,:]
+            u = np.zeros(num_states)
+            u[idx] = 1
+
+
+            # N_new = SMInv(N,u,v)
+            N_new = SM_update(N,u,v)
+            # N_new = SM_update_2(N,v,idx)
+            # N_new = SM_update_3(N,v,num_states,idx)
+            
+            R[idx] = 0
+
+            V = np.dot(N_new, R)
+            new_value = V[root_idx]
+
+            if prev_value < new_value:
+                if abs(prev_value - new_value) > 1e-8:
+                    print(prev_value)
+                    print(new_value)
+                    raise ValueError("something went wrong.")
+
+            elif (prev_value - new_value) / policy_value < epsilon:
+                ## can be pruned
+                N = N_new
+                epsilon -= (prev_value - new_value) / policy_value
+                head = cssp_solver.get_head(node)
+                accumulated_head = accumulated_head.intersection(head)
+
+                prev_value = new_value
+
+                pruned_states.append(state)
+
+            else:
+                ## cannot be pruned
+                R[idx] = 1
+                head = cssp_solver.get_head(node)
+                blocked_action_set = cssp_solver.get_blocked_action_set(node,head)
+                candidate_generating_states.append((state, head, blocked_action_set))
+        
+
+    print(time.time() - t)
+    print(num_states)
+    print(len(pruned_states))
+    print(len(candidate_generating_states))
+
+    for state, idx in initial_pruned_states:
+        pruned_states.append(state)
+
+    print(len(pruned_states))
+    # print(pruned_states)
+
+
+
+
+
+
+
+    
+
+
 # draw_lower_envelop()
 # test_dual_alg()
 # test_dual_alg_multiple_bounds()
@@ -1174,11 +1682,12 @@ def draw_all_policies():
 
 # test_LAOStar_racetrack()
 # draw_lower_envelop_racetrack()
-# test_dual_alg_racetrack()
-test_dual_alg_racetrack1()
+test_dual_alg_racetrack()
+# test_dual_alg_racetrack1()
 
 # test_manual_model()
 # test_manual_model_2()
+# test_manual_model_3()
 
 # test_grid_model_head()
 
@@ -1196,3 +1705,6 @@ test_dual_alg_racetrack1()
 # test_LAOStar_racetrack1()
 
 # test_copy_graph()
+
+# test_pruning_rule()
+# test_pruning_rule_2()

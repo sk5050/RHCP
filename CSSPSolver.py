@@ -93,7 +93,7 @@ class CSSPSolver(object):
         f_minus = value_1
         g_minus = value_2 - self.bounds[0]
 
-        self.add_anytime_solution(f_plus,g_plus)
+        self.add_anytime_solution(f_minus,g_minus)
 
         print("-"*50)
         print("time elapsed: "+str(time.time() - start_time))
@@ -130,7 +130,7 @@ class CSSPSolver(object):
             f = value_1
             g = value_2 - self.bounds[0]
 
-            self.add_anytime_solution(f_plus,g_plus)
+            self.add_anytime_solution(f, g)
 
             print("-"*50)
             print("time elapsed: "+str(time.time() - start_time))
@@ -383,43 +383,6 @@ class CSSPSolver(object):
 
 
 
-        
-    # def incremental_update(self, num_sol):
-
-    #     self.algo.incremental = True
-
-
-
-    #     current_best_graph = self.copy_graph(self.algo.graph)
-    #     current_best_policy = self.algo.extract_policy()
-
-    #     for k in range(num_sol-1):
-
-    #         for state,best_action in current_best_policy.items():
-
-    #             if best_action=="Terminal":
-    #                 continue
-
-    #             node = self.algo.graph.nodes[state]
-    #             new_candidate = self.find_candidate(node)
-
-    #             if new_candidate:
-    #                 if self.candidate_exists(new_candidate):
-    #                     self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
-    #                     continue
-    #                 else:
-    #                     heappush(self.candidate_set, new_candidate)
-    #             else:
-    #                 continue
-
-    #             self.algo.graph = self.copy_graph(current_best_graph)  ## returning to the previous graph.
-
-
-    #        # time.sleep(1000)
-                
-    #         current_best_graph, current_best_policy = self.find_next_best()
-    #         self.algo.graph = self.copy_graph(current_best_graph)
-
 
     def incremental_update(self, num_sol):
 
@@ -428,15 +391,17 @@ class CSSPSolver(object):
         current_best_graph = self.copy_best_graph(self.algo.graph)
         current_best_policy = self.algo.extract_policy()
 
+        self.algo.policy_evaluation(current_best_policy, epsilon=1e-100)
+
         for k in range(num_sol-1):
 
-            t = 0
+            # t = 0
 
             candidate_generating_states = self.prune_candidates(current_best_policy)
 
             for state,head,blocked_action_set in candidate_generating_states:
 
-                t += 1
+                # t += 1
 
                 node = self.algo.graph.nodes[state]
                 new_candidate = self.find_candidate(node,head,blocked_action_set)
@@ -455,18 +420,13 @@ class CSSPSolver(object):
             current_best_graph, current_best_policy = self.find_next_best()
             self.return_to_best_graph(self.algo.graph, current_best_graph)     
             
-            print(t)
+            # print(t)
+            # print(len(self.anytime_solutions))
+            # print(self.anytime_solutions)
+            # time.sleep(1000)
 
 
     def find_candidate(self, node, head, blocked_action_set):
-        
-        # self.algo.head = self.get_head(node)
-        # self.algo.blocked_action_set = self.get_blocked_action_set(node,self.algo.head)
-
-        # if self.algo.blocked_action_set != blocked_action_set:
-        #     print("-----------------")
-        #     print(self.algo.blocked_action_set)
-        #     print(blocked_action_set)
             
         self.algo.head = head
         self.algo.blocked_action_set = blocked_action_set
@@ -542,37 +502,6 @@ class CSSPSolver(object):
 
         return head    
     
-
-    # def get_head(self,node):
-
-    #     head = self.get_ancestors(node)
-    #     queue = head.copy()
-
-    #     while queue:
-    #         popped_node = queue.pop()
-
-    #         if popped_node == node:
-    #             continue
-
-    #         if popped_node.best_action!=None:
-    #             children = popped_node.children[popped_node.best_action]
-
-    #             for child,child_prob in children:
-    #                 if child in head:
-    #                     continue
-    #                 else:
-    #                     queue.add(child)
-    #                     head.add(child)
-
-    #         elif popped_node.terminal==True:
-    #             continue
-
-    #         else:
-    #             raise ValueError("Policy seems have unexpanded node.")                    
-
-    #     head.remove(node)
-    #     return head
-
 
     
     def get_ancestors(self, node):
@@ -742,6 +671,541 @@ class CSSPSolver(object):
 
     def prune_candidates(self, current_best_policy):
 
+        
+        if self.candidate_pruning==False:
+            candidate_generating_states = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+
+                    node = self.algo.graph.nodes[state]
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    
+                    candidate_generating_states.append((state,head,blocked_action_set))
+
+            return candidate_generating_states
+        
+        
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
+
+            epsilon = 0.01
+            initial_epsilon = 1e-5
+
+            policy_value = self.algo.graph.root.value_1
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+            R = np.ones(num_states)    ## TODO: need to be changed. Now it assumes unit cost.
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            for pruned_state in initial_pruned_states:
+                state = pruned_state[0]
+                idx = pruned_state[1]
+                Q[idx,:] = np.zeros(num_states)
+                R[idx] = 0
+
+            N_new = np.linalg.inv(I - Q)
+            # V = np.dot(N_new, R)
+            # new_value = V[root_idx]
+
+            new_value = np.dot(N_new[root_idx,:], R)
+
+
+            epsilon -= (policy_value - new_value) / policy_value
+
+            prev_value = new_value
+
+            if epsilon < 0:
+                raise ValueError("initial pruning was too aggressive!")
+            else:
+                N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    u = np.zeros(num_states)
+                    u[idx] = 1
+                    v = Q[idx,:]
+                    N_new = self.SM_update(N,u,v)
+                    R[idx] = 0
+                    # V = np.dot(N_new, R)
+                    # new_value = V[root_idx]
+
+                    new_value = np.dot(N_new[root_idx,:], R)
+
+
+                    if prev_value < new_value:
+                        if abs(prev_value - new_value) > 1e-8:
+                            print(prev_value)
+                            print(new_value)
+                            raise ValueError("something went wrong.")
+
+                    elif (prev_value - new_value) / policy_value < epsilon:
+                        ## can be pruned
+                        N = N_new
+                        epsilon -= (prev_value - new_value) / policy_value
+                        head = self.get_head(node)
+                        accumulated_head = accumulated_head.intersection(head)
+                        prev_value = new_value
+                        pruned_states.append(state)
+
+                    else:
+                        ## cannot be pruned
+                        R[idx] = 1
+                        head = self.get_head(node)
+                        blocked_action_set = self.get_blocked_action_set(node,head)
+                        candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+
+        
+
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+
+            policy_value = self.algo.graph.root.value_2
+            
+            epsilon = policy_value - self.bounds[0]
+            initial_epsilon = 1e-5
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+
+            R = self.compute_R(state_list)
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            for pruned_state in initial_pruned_states:
+                state = pruned_state[0]
+                idx = pruned_state[1]
+                Q[idx,:] = np.zeros(num_states)
+                R[idx] = 0
+
+            N_new = np.linalg.inv(I - Q)
+            new_value = np.dot(N_new[root_idx,:], R)
+
+
+            epsilon -= (policy_value - new_value)
+
+            prev_value = new_value
+
+            if epsilon < 0:
+                raise ValueError("initial pruning was too aggressive!")
+            else:
+                N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    u = np.zeros(num_states)
+                    u[idx] = 1
+                    v = Q[idx,:]
+                    N_new = self.SM_update(N,u,v)
+                    R_prev = R[idx]
+                    R[idx] = 0
+                    # V = np.dot(N_new, R)
+                    # new_value = V[root_idx]
+
+                    new_value = np.dot(N_new[root_idx,:], R)
+
+                    if prev_value < new_value:
+                        if abs(prev_value - new_value) > 1e-8:
+                            print(prev_value)
+                            print(new_value)
+                            raise ValueError("something went wrong.")
+
+                    elif (prev_value - new_value) < epsilon:
+                        ## can be pruned
+                        N = N_new
+                        epsilon -= (prev_value - new_value)
+                        head = self.get_head(node)
+                        accumulated_head = accumulated_head.intersection(head)
+                        prev_value = new_value
+                        pruned_states.append(state)
+
+                    else:
+                        ## cannot be pruned
+                        R[idx] = R_prev
+                        head = self.get_head(node)
+                        blocked_action_set = self.get_blocked_action_set(node,head)
+                        candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+
+
+
+
+
+    def prune_candidates_2(self, current_best_policy):
+
+        
+        if self.candidate_pruning==False:
+            candidate_generating_states = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+
+                    node = self.algo.graph.nodes[state]
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    
+                    candidate_generating_states.append((state,head,blocked_action_set))
+
+            return candidate_generating_states
+        
+        
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
+
+            epsilon = 0.01
+            initial_epsilon = 1e-5
+            num_per_prune = 50
+
+            policy_value = self.algo.graph.root.value_1
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+            R = np.ones(num_states)    ## TODO: need to be changed. Now it assumes unit cost.
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            for pruned_state in initial_pruned_states:
+                state = pruned_state[0]
+                idx = pruned_state[1]
+                Q[idx,:] = np.zeros(num_states)
+                R[idx] = 0
+
+            N_new = np.linalg.inv(I - Q)
+            # V = np.dot(N_new, R)
+            # new_value = V[root_idx]
+
+            new_value = np.dot(N_new[root_idx,:], R)
+
+
+            epsilon -= (policy_value - new_value) / policy_value
+
+            prev_value = new_value
+
+            if epsilon < 0:
+                raise ValueError("initial pruning was too aggressive!")
+            else:
+                N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    u = np.zeros(num_states)
+                    u[idx] = 1
+                    v = Q[idx,:]
+                    N_new = self.SM_update(N,u,v)
+                    R[idx] = 0
+                    # V = np.dot(N_new, R)
+                    # new_value = V[root_idx]
+
+                    new_value = np.dot(N_new[root_idx,:], R)
+
+
+                    if prev_value < new_value:
+                        if abs(prev_value - new_value) > 1e-8:
+                            print(prev_value)
+                            print(new_value)
+                            raise ValueError("something went wrong.")
+
+                    elif (prev_value - new_value) / policy_value < epsilon:
+                        ## can be pruned
+                        N = N_new
+                        epsilon -= (prev_value - new_value) / policy_value
+                        head = self.get_head(node)
+                        accumulated_head = accumulated_head.intersection(head)
+                        prev_value = new_value
+                        pruned_states.append(state)
+
+                    else:
+                        ## cannot be pruned
+                        R[idx] = 1
+                        head = self.get_head(node)
+                        blocked_action_set = self.get_blocked_action_set(node,head)
+                        candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+
+        
+
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+
+            policy_value = self.algo.graph.root.value_2
+            
+            epsilon = policy_value - self.bounds[0]
+            initial_epsilon = 1e-5
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+
+            R = self.compute_R(state_list)
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            print(len(sorted_states))
+            print(len(initial_pruned_states))
+
+            for pruned_state in initial_pruned_states:
+                state = pruned_state[0]
+                idx = pruned_state[1]
+                Q[idx,:] = np.zeros(num_states)
+                R[idx] = 0
+
+            t = time.time()
+            N_new = np.linalg.inv(I - Q)
+            new_value = np.dot(N_new[root_idx,:], R)
+            print(time.time() - t)
+
+
+            t = time.time()
+            V_ = np.linalg.solve(I-Q, R)
+            new_value_2 = V_[root_idx]
+            print(time.time() - t)
+            
+            print(new_value)
+            print(new_value_2)
+            time.sleep(10000)
+
+            epsilon -= (policy_value - new_value)
+
+            prev_value = new_value
+
+            if epsilon < 0:
+                raise ValueError("initial pruning was too aggressive!")
+            else:
+                N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    u = np.zeros(num_states)
+                    u[idx] = 1
+                    v = Q[idx,:]
+                    N_new = self.SM_update(N,u,v)
+                    R_prev = R[idx]
+                    R[idx] = 0
+                    # V = np.dot(N_new, R)
+                    # new_value = V[root_idx]
+
+                    new_value = np.dot(N_new[root_idx,:], R)
+
+                    if prev_value < new_value:
+                        if abs(prev_value - new_value) > 1e-8:
+                            print(prev_value)
+                            print(new_value)
+                            raise ValueError("something went wrong.")
+
+                    elif (prev_value - new_value) < epsilon:
+                        ## can be pruned
+                        N = N_new
+                        epsilon -= (prev_value - new_value)
+                        head = self.get_head(node)
+                        accumulated_head = accumulated_head.intersection(head)
+                        prev_value = new_value
+                        pruned_states.append(state)
+
+                    else:
+                        ## cannot be pruned
+                        R[idx] = R_prev
+                        head = self.get_head(node)
+                        blocked_action_set = self.get_blocked_action_set(node,head)
+                        candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+        
+
+
+
+
+        
+
+    def compute_transition_matrix(self, state_list):
+
+        num_states = len(state_list)
+
+        Q = np.empty((num_states, num_states))
+        root_idx = None
+
+        i = 0
+        state_idx_dict = dict()
+        for state in state_list:
+            state_idx_dict[state] = i
+
+            if state==self.model.init_state:
+                root_idx = state_list.index(state)
+
+            Q_vector = np.zeros(num_states)
+
+            node = self.algo.graph.nodes[state]
+            children = node.children[node.best_action]
+
+            for child, child_prob in children:
+                if child.terminal != True:
+                    idx = state_list.index(child.state)
+                    if Q_vector[idx] > 0:
+                        Q_vector[idx] += child_prob
+                    else:
+                        Q_vector[idx] = child_prob
+
+            Q[i,:] = Q_vector
+
+            i += 1
+
+        return Q, root_idx, state_idx_dict
+   
+
+
+
+    def SM_update(self,B, u, v):
+        return B - np.outer(B @ u, v @ B) / (1 + v.T @ B @ u)
+
+
+
+
+
+    def compute_R(self,state_list):
+        
+        R = np.zeros(len(state_list))
+
+        i = 0
+        for state in state_list:
+            cost1, cost2 = self.model.cost(state, None)
+            R[i] = cost2
+            i += 1
+
+        return R
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+    def prune_candidates_old(self, current_best_policy):
+
         if self.candidate_pruning==False or (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
             candidate_generating_states = []
             for state, action in current_best_policy.items():
@@ -754,7 +1218,8 @@ class CSSPSolver(object):
                     candidate_generating_states.append((state,head,blocked_action_set))
 
             return candidate_generating_states
-
+        
+        
         else:
 
             state_list = []
@@ -764,93 +1229,130 @@ class CSSPSolver(object):
 
             L = self.compute_likelihoods(state_list)
 
-            policy_value = self.algo.graph.root.value_1
+            
             weighted_value_diff_list = []
             blocked_action_set_list = []
             head_list = []
-
-            for state in state_list:
-                node = self.algo.graph.nodes[state]
-                head = self.get_head(node)
-                blocked_action_set = self.get_blocked_action_set(node,head)
-
-                blocked_action_set_list.append(blocked_action_set)
-                head_list.append(head)
-                
-                prev_value = node.value_1
-                possible_actions = self.model.actions(state)
-                value_diff_list = []
-
-                for action in possible_actions:
-                    if action in blocked_action_set:
-                        continue
-
-                    new_value_1, new_value_2 = self.model.cost(state,action)
-
-                    children = node.children[action]
-                    for child, child_prob in children:
-                        heuristic_1, heuristic_2 = self.model.heuristic(child.state)
-                        new_value_1 += child_prob * heuristic_1
-
-                    value_diff_list.append(prev_value - new_value_1)
-
-                max_value_diff = max(value_diff_list)
-
-                idx = state_list.index(state)
-                weighted_value_diff = L[idx]*max_value_diff
-
-                weighted_value_diff_list.append(weighted_value_diff / policy_value)
-
-            sorted_states = [(state,head,blocked_action_set) for weighted_value_diff, state, head, blocked_action_set in \
-                             sorted(zip(weighted_value_diff_list, state_list, head_list, blocked_action_set_list))]
             
-            weighted_value_diff_list.sort()
 
-            prob = 0
-            k = 0
-            for i in weighted_value_diff_list:
-                k += 1
-                prob += i
+            ## pruning when current best solution is feasible soluiton. 
+            if (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
 
-                if prob >= 0.01:
-                    break
+                policy_value = self.algo.graph.root.value_1
+                
+                for state in state_list:
+                    node = self.algo.graph.nodes[state]
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+
+                    blocked_action_set_list.append(blocked_action_set)
+                    head_list.append(head)
+
+                    prev_value = node.value_1
+                    possible_actions = self.model.actions(state)
+                    value_diff_list = []
+
+                    for action in possible_actions:
+                        if action in blocked_action_set:
+                            continue
+
+                        new_value_1, new_value_2 = self.model.cost(state,action)
+
+                        children = node.children[action]
+                        for child, child_prob in children:
+                            heuristic_1, heuristic_2 = self.model.heuristic(child.state)
+                            new_value_1 += child_prob * heuristic_1
+
+                        value_diff_list.append(prev_value - new_value_1)
+
+                    max_value_diff = max(value_diff_list)
+
+                    idx = state_list.index(state)
+                    weighted_value_diff = L[idx]*max_value_diff
+
+                    weighted_value_diff_list.append(weighted_value_diff / policy_value)
+
+                sorted_states = [(state,head,blocked_action_set) for weighted_value_diff, state, head, blocked_action_set in \
+                                 sorted(zip(weighted_value_diff_list, state_list, head_list, blocked_action_set_list))]
+
+                weighted_value_diff_list.sort()
 
 
-            candidate_generating_states = sorted_states[k:]
+                prob = 0
+                k = 0
+                for i in weighted_value_diff_list:
+                    prob += i
+                    if prob >= 0.001:
+                        break
+                    k += 1
 
-            return candidate_generating_states
+                candidate_generating_states = sorted_states[k:]
+
+                return candidate_generating_states
 
 
+            
+            # ## pruning when current best solution is infeasible soluiton. 
+            # elif (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
 
-    # def compute_likelihoods(self, state_list):
+            #     policy_value = self.algo.graph.root.value_2
+                
+            #     for state in state_list:
+            #         node = self.algo.graph.nodes[state]
+            #         head = self.get_head(node)
+            #         blocked_action_set = self.get_blocked_action_set(node,head)
 
-    #     Q = []
-    #     root_idx = None
+            #         blocked_action_set_list.append(blocked_action_set)
+            #         head_list.append(head)
 
-    #     for state in state_list:
+            #         prev_value = node.value_2
+            #         possible_actions = self.model.actions(state)
+            #         value_diff_list = []
 
-    #         if state==self.model.init_state:
-    #             root_idx = state_list.index(state)
+            #         for action in possible_actions:
+            #             if action in blocked_action_set:
+            #                 continue
 
-    #         Q_vector = [0]*len(state_list)
+            #             new_value_1, new_value_2 = self.model.cost(state,action)
 
-    #         node = self.algo.graph.nodes[state]
-    #         children = node.children[node.best_action]
+            #             children = node.children[action]
+            #             for child, child_prob in children:
+            #                 heuristic_1, heuristic_2 = self.model.heuristic(child.state)
+            #                 new_value_2 += child_prob * heuristic_2
 
-    #         for child, child_prob in children:
-    #             if child.terminal != True:
-    #                 idx = state_list.index(child.state)
-    #                 Q_vector[idx] = child_prob
+            #             value_diff_list.append(prev_value - new_value_2)
 
-    #         Q.append(Q_vector)
+            #         max_value_diff = max(value_diff_list)
 
-    #     Q = np.matrix(Q)
-    #     N = np.linalg.inv(np.eye(len(Q_vector)) - Q)
+            #         idx = state_list.index(state)
+            #         weighted_value_diff = L[idx]*max_value_diff
 
-    #     L = N[0] / N[0,root_idx]
+            #         weighted_value_diff_list.append(weighted_value_diff)
 
-    #     return L
+            #     sorted_states = [(state,head,blocked_action_set) for weighted_value_diff, state, head, blocked_action_set in \
+            #                      sorted(zip(weighted_value_diff_list, state_list, head_list, blocked_action_set_list))]
 
+            #     weighted_value_diff_list.sort()
+
+            #     print(weighted_value_diff_list)
+            #     time.sleep(1000)
+
+            #     feasible_gap = policy_value - self.bounds[0]
+
+            #     prob = 0
+            #     k = 0
+            #     for i in weighted_value_diff_list:
+            #         prob += i
+            #         if prob >= feasible_gap:
+            #             break
+            #         k += 1
+
+            #     candidate_generating_states = sorted_states[k:]
+
+            #     return candidate_generating_states
+
+
+            
 
     def compute_likelihoods(self, state_list):
 
@@ -887,12 +1389,8 @@ class CSSPSolver(object):
         L = np.linalg.solve(np.transpose(I-Q), o)
         L = L / L[root_idx]
 
-        # N = np.linalg.inv(np.eye(num_states) - Q)
-        # L = N[root_idx] / N[root_idx, root_idx]
-
-        # L = N[0] / N[0,root_idx]
-
-        return L    
+        return L  
+    
 
 
 
@@ -907,3 +1405,261 @@ class CSSPSolver(object):
 
                 if self.anytime_solutions[-1][0] > f:
                     self.anytime_solutions.append((f, time.time() - self.t_start))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###############################################################################################
+
+
+
+    # def prune_candidates(self, current_best_policy):
+
+    #     if self.candidate_pruning==False:
+    #         candidate_generating_states = []
+    #         for state, action in current_best_policy.items():
+    #             if action != 'Terminal':
+
+    #                 node = self.algo.graph.nodes[state]
+    #                 head = self.get_head(node)
+    #                 blocked_action_set = self.get_blocked_action_set(node,head)
+                    
+    #                 candidate_generating_states.append((state,head,blocked_action_set))
+
+    #         return candidate_generating_states
+        
+        
+    #     else:
+
+    #         state_list = []
+    #         for state, action in current_best_policy.items():
+    #             if action != 'Terminal':
+    #                 state_list.append(state)
+
+    #         L = self.compute_likelihoods(state_list)
+
+            
+    #         weighted_value_diff_list = []
+    #         blocked_action_set_list = []
+    #         head_list = []
+            
+
+    #         ## pruning when current best solution is feasible soluiton. 
+    #         if (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
+
+    #             policy_value = self.algo.graph.root.value_1
+                
+    #             for state in state_list:
+    #                 node = self.algo.graph.nodes[state]
+    #                 head = self.get_head(node)
+    #                 blocked_action_set = self.get_blocked_action_set(node,head)
+
+    #                 blocked_action_set_list.append(blocked_action_set)
+    #                 head_list.append(head)
+
+    #                 prev_value = node.value_1
+    #                 possible_actions = self.model.actions(state)
+    #                 value_diff_list = []
+
+    #                 for action in possible_actions:
+    #                     if action in blocked_action_set:
+    #                         continue
+
+    #                     new_value_1, new_value_2 = self.model.cost(state,action)
+
+    #                     children = node.children[action]
+    #                     for child, child_prob in children:
+    #                         heuristic_1, heuristic_2 = self.model.heuristic(child.state)
+    #                         new_value_1 += child_prob * heuristic_1
+
+    #                     value_diff_list.append(prev_value - new_value_1)
+
+    #                 max_value_diff = max(value_diff_list)
+
+    #                 idx = state_list.index(state)
+    #                 weighted_value_diff = L[idx]*max_value_diff
+
+    #                 weighted_value_diff_list.append(weighted_value_diff / policy_value)
+
+    #             sorted_states = [(state,head,blocked_action_set) for weighted_value_diff, state, head, blocked_action_set in \
+    #                              sorted(zip(weighted_value_diff_list, state_list, head_list, blocked_action_set_list))]
+
+    #             weighted_value_diff_list.sort()
+
+
+    #             prob = 0
+    #             k = 0
+    #             for i in weighted_value_diff_list:
+    #                 prob += i
+    #                 if prob >= 0.001:
+    #                     break
+    #                 k += 1
+
+    #             candidate_generating_states = sorted_states[k:]
+
+    #             return candidate_generating_states
+
+
+            
+    #         ## pruning when current best solution is infeasible soluiton. 
+    #         elif (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+
+    #             policy_value = self.algo.graph.root.value_2
+
+    #             sorted_state_list = [state for prob, state in sorted(zip(L, state_list))]
+
+    #             pruned = []
+
+    #             weighted_value_diff = 0
+
+    #             feasible_gap = policy_value - self.bounds[0]
+
+    #             k=0
+
+    #             for state in sorted_state_list:
+    #                 node = self.algo.graph.nodes[state]
+    #                 head = self.get_head(node)
+    #                 blocked_action_set = self.get_blocked_action_set(node,head)
+
+    #                 blocked_action_set_list.append(blocked_action_set)
+    #                 head_list.append(head)
+
+    #                 prev_value = node.value_2
+    #                 possible_actions = self.model.actions(state)
+    #                 value_diff_list = []
+
+    #                 for action in possible_actions:
+    #                     if action in blocked_action_set:
+    #                         continue
+
+    #                     new_value_1, new_value_2 = self.model.cost(state,action)
+
+    #                     children = node.children[action]
+    #                     for child, child_prob in children:
+    #                         heuristic_1, heuristic_2 = self.model.heuristic(child.state)
+    #                         new_value_2 += child_prob * heuristic_2
+
+    #                     value_diff_list.append(prev_value - new_value_2)
+
+    #                 max_value_diff = max(value_diff_list)
+
+    #                 idx = state_list.index(state)
+
+    #                 pruned.append(idx)
+
+    #                 L2 = self.compute_likelihoods_2(state_list, pruned)
+
+    #                 weighted_value_diff += L2[idx]*max_value_diff
+
+    #                 if weighted_value_diff >= feasible_gap:
+    #                     break
+
+    #                 k += 1
+
+
+    #             sorted_state_pruned = sorted_state_list[k:]
+
+    #             candidate_generating_states = []
+
+    #             for state in sorted_state_pruned:
+    #                 node = self.algo.graph.nodes[state]
+    #                 head = self.get_head(node)
+    #                 blocked_action_set = self.get_blocked_action_set(node,head)
+    #                 candidate_generating_states.append((state,head,blocked_action_set))
+
+    #             return candidate_generating_states
+
+
+            
+
+    # def compute_likelihoods(self, state_list):
+
+    #     num_states = len(state_list)
+        
+    #     Q = np.empty((num_states, num_states))
+    #     root_idx = None
+
+    #     i = 0
+    #     for state in state_list:
+
+    #         if state==self.model.init_state:
+    #             root_idx = state_list.index(state)
+
+    #         Q_vector = np.zeros(num_states)
+
+    #         node = self.algo.graph.nodes[state]
+    #         children = node.children[node.best_action]
+
+    #         for child, child_prob in children:
+    #             if child.terminal != True:
+    #                 idx = state_list.index(child.state)
+    #                 Q_vector[idx] = child_prob
+
+    #         Q[i,:] = Q_vector
+            
+    #         i += 1
+
+
+    #     t = time.time()
+    #     I = np.identity(num_states)
+    #     o = np.zeros(num_states)
+    #     o[root_idx] = 1
+    #     L = np.linalg.solve(np.transpose(I-Q), o)
+    #     L = L / L[root_idx]
+
+    #     return L  
+
+
+
+    # def compute_likelihoods_2(self, state_list, pruned):
+
+    #     num_states = len(state_list)
+        
+    #     Q = np.empty((num_states, num_states))
+    #     root_idx = None
+
+    #     i = 0
+    #     for state in state_list:
+
+    #         if state==self.model.init_state:
+    #             root_idx = state_list.index(state)
+
+    #         Q_vector = np.zeros(num_states)
+
+    #         node = self.algo.graph.nodes[state]
+    #         children = node.children[node.best_action]
+
+    #         for child, child_prob in children:
+    #             if child.terminal != True:
+    #                 idx = state_list.index(child.state)
+    #                 Q_vector[idx] = child_prob
+
+    #         Q[i,:] = Q_vector
+            
+    #         i += 1
+
+    #     for j in pruned:
+    #         Q[j,:] = np.zeros(num_states)
+
+
+    #     t = time.time()
+    #     I = np.identity(num_states)
+    #     o = np.zeros(num_states)
+    #     o[root_idx] = 1
+    #     L = np.linalg.solve(np.transpose(I-Q), o)
+
+    #     return L      

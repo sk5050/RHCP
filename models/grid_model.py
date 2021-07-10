@@ -103,7 +103,8 @@ class GRIDModel(object):
 
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
-        if state==(0,4) or state==(2,2) or state==(3,4):
+        # if state==(0,4) or state==(2,2) or state==(3,4):
+        if state==(0,4) or state==(2,2) or state==(3,4) or state==(4,1) or state==(4,2) or state==(3,4):
             cost2 = 50.0
         else:
             cost2 = 0.0
