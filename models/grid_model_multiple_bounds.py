@@ -115,25 +115,25 @@ class GRIDModel_multiple_bounds(object):
         else:
             cost3 = 0.0
 
-        return [cost1, cost2, cost3]
+        return cost1, cost2, cost3
 
     
     def heuristic(self, state,depth=None):
         heuristic1 = math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
 
         if state==(0,4) or state==(2,2) or state==(3,4):
-            heuristic2 = 50.0
+            heuristic2 = 0
             # heuristic3 = -50.0
         else:
             heuristic2 = 0
             # heuristic3 = 0
 
         if state==(4,0) or state==(3,1):
-            heuristic3 = 50.0
+            heuristic3 = 0
         else:
-            heuristic3 = 0.0
+            heuristic3 = 0
 
-        return [heuristic1, heuristic2, heuristic3]
+        return heuristic1, heuristic2, heuristic3
 
 
 

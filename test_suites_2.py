@@ -609,7 +609,38 @@ def draw_lower_envelop_racetrack():
     plt.show()    
 
 
+
+
+
+def test_subgradient():
+
+    init_state = (0,0)
+    size = (5,5)
+    goal = (4,4)
+    model = GRIDModel_multiple_bounds(size, init_state, goal, prob_right_transition=0.85)
+
+    bounds = [1.5, 10]
     
+    cssp_solver = CSSPSolver(model, bounds=bounds,VI_epsilon=1e-1,convergence_epsilon=1e-100)
+
+
+    cssp_solver.solve_sg([0,0])
+
+    policy = cssp_solver.algo.extract_policy()
+
+    alpha = cssp_solver.algo.alpha
+    value_1 = cssp_solver.algo.graph.root.value_1
+    value_2 = cssp_solver.algo.graph.root.value_2
+    value_3 = cssp_solver.algo.graph.root.value_3
+    weighted_value = value_1 + alpha[0]*(value_2 - bounds[0]) + alpha[1]*(value_3 - bounds[1])
+    
+    print(alpha)
+    print(value_1)
+    print(value_2)
+    print(value_3)
+    print(weighted_value)
+
+
 
 
 def draw_lower_envelop_multiple_bounds():
@@ -646,17 +677,16 @@ def draw_lower_envelop_multiple_bounds():
             alpha_1_list.append(a_1)
             alpha_2_list.append(a_2)
 
-            algo = LAOStar(model,constrained=True,bounds=bounds,alpha=[a_1, a_2],Lagrangian=True)
+            algo = ILAOStar(model,constrained=True,VI_epsilon=1e-1, convergence_epsilon=1e-10,\
+                   bounds=bounds,alpha=[a_1, a_2],Lagrangian=True)
 
             policy = algo.solve()
 
-            while policy == False:
-                algo = LAOStar(model,constrained=True,bounds=bounds,alpha=[a_1, a_2],Lagrangian=True)
-                policy = algo.solve()
 
-
-            value = algo.graph.root.value
-            weighted_value = value[0] + a_1*(value[1] - bounds[0]) + a_2*(value[2] - bounds[1])
+            value_1 = algo.graph.root.value_1
+            value_2 = algo.graph.root.value_2
+            value_3 = algo.graph.root.value_3
+            weighted_value = value_1 + a_1*(value_2 - bounds[0]) + a_2*(value_3 - bounds[1])
             weighted_value_list.append(weighted_value)
 
 
@@ -867,7 +897,7 @@ def test_dual_alg_racetrack():
 
     sys.setrecursionlimit(8000)
 
-    map_file = "models/racetrack_hard.txt"
+    map_file = "models/racetrack_hard (copy).txt"
     traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
     heuristic_file = "models/racetrack_hard_heuristic.json"
 
@@ -888,7 +918,7 @@ def test_dual_alg_racetrack():
 
     cssp_solver.candidate_pruning = True
     
-    cssp_solver.incremental_update(2)
+    cssp_solver.incremental_update(1)
 
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
@@ -943,21 +973,34 @@ def test_dual_alg_racetrack1():
 
 
 def test_dual_alg_multiple_bounds():
+
     init_state = (0,0)
     size = (5,5)
     goal = (4,4)
     model = GRIDModel_multiple_bounds(size, init_state, goal, prob_right_transition=0.85)
+
+    bounds = [1.5, 10]
+
     
+    cssp_solver = CSSPSolver(model, bounds=bounds,VI_epsilon=1e-1,convergence_epsilon=1e-10)
 
-    bounds = [1.5, 12]
 
-    cssp_solver = CSSPSolver(model, bounds=bounds)
-
-    cssp_solver.solve([[0,100],[0,20]])
+    # cssp_solver.solve_dual_multiple([[0,100],[0,20]])
+    cssp_solver.solve_dual_line_search([[0,100],[0,20]])
 
     policy = cssp_solver.algo.extract_policy()
 
-    model.print_policy(policy)
+    alpha = cssp_solver.algo.alpha
+    value_1 = cssp_solver.algo.graph.root.value_1
+    value_2 = cssp_solver.algo.graph.root.value_2
+    value_3 = cssp_solver.algo.graph.root.value_3
+    weighted_value = value_1 + alpha[0]*(value_2 - bounds[0]) + alpha[1]*(value_3 - bounds[1])
+    
+    print(alpha)
+    print(value_1)
+    print(value_2)
+    print(value_3)
+    print(weighted_value)
 
     
 
@@ -1708,3 +1751,4 @@ test_dual_alg_racetrack()
 
 # test_pruning_rule()
 # test_pruning_rule_2()
+# test_subgradient()

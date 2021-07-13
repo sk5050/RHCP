@@ -10,6 +10,7 @@ from ILAOStar import ILAOStar
 from value_iteration import VI
 from CSSPSolver import CSSPSolver
 from MILPSolver import MILPSolver
+from IDUAL import IDUAL
 
 
 from simple_grid_model import SIMPLEGRIDModel
@@ -45,7 +46,7 @@ def test_racetrack_hard():
 
     sys.setrecursionlimit(8000)
 
-    map_file = "models/racetrack_hard.txt"
+    map_file = "models/racetrack_hard (copy).txt"
     traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
     heuristic_file = "models/racetrack_hard_heuristic.json"
 
@@ -86,6 +87,8 @@ def test_racetrack_hard():
     solver = MILPSolver(model, bound, cssp_solver.algo)
 
     solver.encode_MILP()
+
+    solver.solve_opt()
 
 
 
@@ -345,14 +348,41 @@ def test_LAOStar():
     print(value_1)
 
 
+
+
+
+def test_idual():
+    
+    sys.setrecursionlimit(8000)
+
+    map_file = "models/racetrack_hard (copy).txt"
+    traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
+    heuristic_file = "models/racetrack_hard_heuristic.json"
+
+    init_state = (3,1,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 1
+
+    solver = IDUAL(model, bound)
+
+    solver.solve()
+
+
+
+    
+
     
 
 # test_encoding()
 
-test_racetrack_hard()
+# test_racetrack_hard()
 # test_racetrack()
 # test_racetrack_easy()
 # test_racetrack_simple()
 
+test_idual()
 
 # test_grid()
