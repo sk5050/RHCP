@@ -10,6 +10,7 @@ from ILAOStar import ILAOStar
 from value_iteration import VI
 from CSSPSolver import CSSPSolver
 from simple_grid_model import SIMPLEGRIDModel
+from simple_grid_model_2 import SIMPLEGRIDModel2
 from grid_model import GRIDModel
 from grid_model_multiple_bounds import GRIDModel_multiple_bounds
 from racetrack_model import RaceTrackModel
@@ -656,8 +657,8 @@ def draw_lower_envelop_multiple_bounds():
 
     # algo = LAOStar(model)
 
-    alpha_1_range = list(linspace(0.0,100,20))
-    alpha_2_range = list(linspace(0.0,20,20))
+    alpha_1_range = list(linspace(0,110,50))
+    alpha_2_range = list(linspace(0,22,50))
     # alpha_1_range = [46.355221667242965]
     # alpha_2_range = [4.325548069037225]
 
@@ -667,7 +668,6 @@ def draw_lower_envelop_multiple_bounds():
     alpha_2_list = []
     weighted_value_list = []
 
-    # bounds = [0.5, -0.2]
     bounds = [1.5, 10]
 
     for a_1 in alpha_1_range:
@@ -811,10 +811,10 @@ def test_dual_alg():
 
     policy = cssp_solver.algo.extract_policy()
 
-    cssp_solver.candidate_pruning = True
+    cssp_solver.candidate_pruning = False
 
     # try:
-    cssp_solver.incremental_update(5)
+    cssp_solver.incremental_update(300)
     # except:
     #     print(cssp_solver.candidate_set)
     
@@ -917,8 +917,21 @@ def test_dual_alg_racetrack():
     policy = cssp_solver.algo.extract_policy()
 
     cssp_solver.candidate_pruning = True
-    
-    cssp_solver.incremental_update(1)
+
+    try:
+        cssp_solver.incremental_update(2)
+    except:
+
+        k_best_solution_set = cssp_solver.k_best_solution_set
+        for solution in k_best_solution_set:
+            print("-"*20)
+            print(solution[0])
+            print(solution[1])
+
+        print(time.time() - t)
+
+        print(cssp_solver.anytime_solutions)
+
 
     k_best_solution_set = cssp_solver.k_best_solution_set
     for solution in k_best_solution_set:
@@ -986,7 +999,8 @@ def test_dual_alg_multiple_bounds():
 
 
     # cssp_solver.solve_dual_multiple([[0,100],[0,20]])
-    cssp_solver.solve_dual_line_search([[0,100],[0,20]])
+    # cssp_solver.solve_dual_line_search([[0,100],[0,20]])
+    cssp_solver.solve_sg([100,20], h=0.5, rule='sqrt')
 
     policy = cssp_solver.algo.extract_policy()
 
@@ -1199,48 +1213,48 @@ def test_grid_model_head():
 
 def draw_all_policies():
 
-    model = SIMPLEGRIDModel(prob_right_transition=0.85)
+    model = SIMPLEGRIDModel2(prob_right_transition=0.85)
 
     alpha = [8.0]
-    bounds = [3.0]
+    bounds = [1.0]
 
 
     
     algo = VI(model, constrained=True, VI_epsilon=1e-50, VI_max_iter=100000,bounds=bounds, alpha=alpha)
 
 
-    policy_set = [{(0, 0): 'V', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'V'},
-                  {(0, 0): 'V', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'L'},
-                  {(0, 0): 'V', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'V'},
-                  {(0, 0): 'L', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'V'},
-                  {(0, 0): 'L', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'V'},
-                  {(0, 0): 'L', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'L'},
-                  {(0, 0): 'V', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'L'},
-                  {(0, 0): 'L', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'L'}]
+    # policy_set = [{(0, 0): 'V', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'V'},
+    #               {(0, 0): 'V', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'L'},
+    #               {(0, 0): 'V', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'V'},
+    #               {(0, 0): 'L', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'V'},
+    #               {(0, 0): 'L', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'V'},
+    #               {(0, 0): 'L', (1, 0): 'V', (1, 1): 'Terminal', (0, 1): 'L'},
+    #               {(0, 0): 'V', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'L'},
+    #               {(0, 0): 'L', (1, 0): 'L', (1, 1): 'Terminal', (0, 1): 'L'}]
 
     
-    algo.expand_all()
+    # algo.expand_all()
 
-    x_list = list(linspace(0.0, 3.0, 1000))
+    # x_list = list(linspace(0.0, 3.0, 1000))
 
-    for policy in policy_set:
-        algo.policy_evaluation(policy, epsilon=1e-100)
-        value_1 = algo.graph.root.value_1
-        value_2 = algo.graph.root.value_2
-        print("------------")
-        print(value_1)
-        print(value_2)
-        print(value_1 + 1.7047619049945828*(value_2 - bounds[0]))
+    # for policy in policy_set:
+    #     algo.policy_evaluation(policy, epsilon=1e-100)
+    #     value_1 = algo.graph.root.value_1
+    #     value_2 = algo.graph.root.value_2
+    #     print("------------")
+    #     print(value_1)
+    #     print(value_2)
+    #     print(value_1 + 1.7047619049945828*(value_2 - bounds[0]))
 
-        y_list = []
+    #     y_list = []
 
-        for x in x_list:
-            y = value_1 + x*(value_2 - bounds[0])
-            y_list.append(y)
+    #     for x in x_list:
+    #         y = value_1 + x*(value_2 - bounds[0])
+    #         y_list.append(y)
 
-        plt.plot(x_list, y_list)
+    #     plt.plot(x_list, y_list)
 
-    # plt.ylim([0,25])
+    # # plt.ylim([0,25])
 
 
 
@@ -1253,34 +1267,51 @@ def draw_all_policies():
 
 
     
-    cssp_solver.incremental_update(8)
+    cssp_solver.incremental_update(32)
 
     alpha = cssp_solver.algo.alpha[0]
 
     k_best_solution_set = cssp_solver.k_best_solution_set
 
     k = 0
+    k_list = []
+    sol_list = []
     for solution in k_best_solution_set:
         print("-"*20)
+        k += 1
+        print("num: " + str(k))
         print(solution[0])
         print(solution[1])
         print(solution[2])
-        k += 1
 
-        value_1 = solution[1][0]
-        value_2 = solution[1][1]
+        k_list.append(k)
+        sol_list.append(solution[0])
 
-        y = value_1 + alpha*(value_2 - bounds[0])
+    plt.plot(k_list, sol_list, '*')
+    plt.show()
 
-        plt.plot(alpha, y, 'r*')
-        plt.annotate(str(k), (alpha, y))
+    # k = 0
+    # for solution in k_best_solution_set:
+    #     print("-"*20)
+    #     print(solution[0])
+    #     print(solution[1])
+    #     print(solution[2])
+    #     k += 1
+
+    #     value_1 = solution[1][0]
+    #     value_2 = solution[1][1]
+
+    #     y = value_1 + alpha*(value_2 - bounds[0])
+
+    #     plt.plot(alpha, y, 'r*')
+    #     plt.annotate(str(k), (alpha, y))
 
 
 
 
 
     
-    plt.show()
+    # plt.show()
 
 
 
@@ -1738,6 +1769,7 @@ test_dual_alg_racetrack()
 
 # test_VI_racetrack()
 # test_racetrack()
+
 # draw_lower_envelop_multiple_bounds()
 # draw_lower_envelop_multiple_bounds_lb_ub()
 
@@ -1752,3 +1784,10 @@ test_dual_alg_racetrack()
 # test_pruning_rule()
 # test_pruning_rule_2()
 # test_subgradient()
+
+
+
+
+
+
+

@@ -47,6 +47,42 @@ class IDUAL(object):
 
 
 
+    def solve_LP_and_MILP(self):
+
+        S_hat = set([self.graph.root])
+        F = set([self.graph.root])
+        F_R = set([self.graph.root])
+        F = set()
+        G_hat = set()
+        G = set() # this is a set for explored goals, i.e., S_hat.intersection(a set of all goals of the problem)
+
+        while len(F_R)>0:
+
+            N, G = self.F_R_expansion(F_R, G)   ## F_R_expansion not only expands fringe states, but also add explored goals to G. 
+            # S_hat = S_hat.union(N)         ## we don't need S_hat explicitly, because S_hat=self.graph.nodes
+            F_term_1 = F.difference(F_R)
+            F_term_2 = N.difference(G)
+            F = F_term_1.union(F_term_2)
+            G_hat = F.union(G)
+            F_R = self.solve_opt_LP(G_hat, F)
+            
+
+        # F_R = self.solve_opt(G_hat, F)
+
+        # while len(F_R)>0:
+
+        #     N, G = self.F_R_expansion(F_R, G)   ## F_R_expansion not only expands fringe states, but also add explored goals to G. 
+        #     # S_hat = S_hat.union(N)         ## we don't need S_hat explicitly, because S_hat=self.graph.nodes
+        #     F_term_1 = F.difference(F_R)
+        #     F_term_2 = N.difference(G)
+        #     F = F_term_1.union(F_term_2)
+        #     G_hat = F.union(G)
+        #     F_R = self.solve_opt(G_hat, F)
+
+
+
+
+
     def F_R_expansion(self, F_R, G):
         N = set()
         for node in F_R:
@@ -268,7 +304,188 @@ class IDUAL(object):
         
 
         return F_R
+
+
+
+
+
+
+    def solve_opt_LP(self, G_hat, F):
+
+        state_list = []
+        goal_list  = []
+
+        for state,node in self.graph.nodes.items():
+
+            if node in G_hat:
+                goal_list.append(state)
+            else:
+                state_list.append(state)
+
+
+        m = gp.Model("CSSP")
+
+        X = 100000
+
+
+        ## Add variables
+        state_var_dict = dict()
+        goal_var_dict = dict()
+
+        # delta_state_var_dict = dict()
+        # delta_goal_var_dict = dict()
+
+        for state in state_list:
+            dict_temp = dict()
+            for action in self.model.actions(state):
+                dict_temp[action] = m.addVar(lb=0, name=str((state,action)))
+
+            state_var_dict[state] = dict_temp
+
+        for goal in goal_list:
+            dict_temp = dict()
+            for action in self.model.actions(goal):
+                dict_temp[action] = m.addVar(lb=0, name=str((goal,action)))
+
+            goal_var_dict[goal] = dict_temp
+
+
+
+        # for state in state_list:
+        #     dict_temp = dict()
+        #     for action in self.model.actions(state):
+        #         dict_temp[action] = m.addVar(vtype=GRB.BINARY)
+
+        #     delta_state_var_dict[state] = dict_temp
+
+        # for goal in goal_list:
+        #     dict_temp = dict()
+        #     for action in self.model.actions(goal):
+        #         dict_temp[action] = m.addVar(vtype=GRB.BINARY)
+
+        #     delta_goal_var_dict[goal] = dict_temp
+
+
+
+        in_var_dict = dict()
+        out_var_dict = dict()
+
+        for state in state_list:
+            in_var_dict[state] = m.addVar(lb=0, name=str(state))
+            out_var_dict[state] = m.addVar(lb=0, name=str(state))
+
+        for goal in goal_list:
+            in_var_dict[goal] = m.addVar(lb=0, name=str(goal))
+
+            
+        ## Add constraints
+
+        for state in state_list:
+            in_var = in_var_dict[state]
+            m.addConstr(in_var == \
+                        gp.quicksum(state_var_dict[parent_node.state][action_]*self.prob(parent_node.state,state,action_) \
+                                for parent_node in self.graph.nodes[state].parents_set for action_ in self.model.actions(parent_node.state))
+                        )
+
+
+            out_var = out_var_dict[state]
+            var_dict = state_var_dict[state]
+            m.addConstr(out_var == \
+                        gp.quicksum(var for action,var in var_dict.items()))
+                        
         
+
+
+        for goal in goal_list:
+            in_var = in_var_dict[goal]
+            m.addConstr(in_var == \
+                        gp.quicksum(state_var_dict[parent_node.state][action_]*self.prob(parent_node.state,goal,action_) \
+                                for parent_node in self.graph.nodes[goal].parents_set for action_ in self.model.actions(parent_node.state))
+                        )
+
+            
+                
+
+        for state in state_list:
+            if state==self.init_state:
+                m.addConstr(
+                    out_var_dict[state] == 1 + in_var_dict[state])
+
+                
+            else:
+                m.addConstr(
+                    out_var_dict[state] == in_var_dict[state])
+            
+
+        m.addConstr(
+            1 == gp.quicksum(in_var_dict[goal] for goal in goal_list))
+
+
+        m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
+                                for state in state_list for action in self.model.actions(state)) + \
+                    gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
+                    <= self.bound)
+
+
+        # for state in state_list:
+        #     m.addConstr(
+        #         gp.quicksum(delta_state_var_dict[state][action] for action in self.model.actions(state))
+        #         <= 1)
+
+        # for goal in goal_list:
+        #     m.addConstr(
+        #         gp.quicksum(delta_goal_var_dict[goal][action] for action in self.model.actions(goal))
+        #         <= 1)
+
+
+        # for state in state_list:
+        #     for action in self.model.actions(state):
+        #         m.addConstr(
+        #             state_var_dict[state][action] / X <= delta_state_var_dict[state][action])
+
+        # for goal in goal_list:
+        #     for action in self.model.actions(goal):
+        #         m.addConstr(
+        #             goal_var_dict[goal][action] / X <= delta_goal_var_dict[goal][action])
+
+
+        
+
+
+
+        ## Add objective
+
+        m.setObjective(gp.quicksum(state_var_dict[state][action]*self.primary_cost(state,action) \
+                                   for state in state_list for action in self.model.actions(state)) + \
+                       gp.quicksum(in_var_dict[goal]*self.primary_heuristic(goal) for goal in goal_list))     
+
+
+        m.modelSense = GRB.MINIMIZE
+        m.update()
+        m.optimize()
+
+        print('Obj: %g' % m.objVal)
+
+
+        # for state,v in in_var_dict.items():
+        #     # if v.x != 0:
+        #     print('%s %g' % (v.varName, v.x))        
+
+        # print(in_var_dict)
+
+
+        F_R = set()
+
+        for node in F:
+            state = node.state
+
+            if in_var_dict[state].x > 0:
+                F_R.add(node)
+
+        
+
+        return F_R
+    
 
 
 

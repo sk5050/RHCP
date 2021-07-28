@@ -8,20 +8,9 @@ import math
 # import numpy as np
 import time
 
-class GRIDModel_multiple_bounds(object):
+class ELEVATORModel(object):
 
-    def __init__(self, size=(3,3),init_state=(0,0), goal=(4,4), prob_right_transition=0.9):
-
-        # grid with size (x,y): width is x and height is y. index start from 0.
-        # example of (3,3)
-        # _____________
-        # |0,2|1,2|2,2|
-        # |___|___|___|
-        # |0,1|1,1|2,1|
-        # |___|___|___|
-        # |0,0|1,0|2,0|
-        # |___|___|___|
-        #
+    def __init__(self, n=20, w=1, h=1, prob=0.75, init_state=None):
 
         self.init_state=init_state
         self.prob_right_transition = prob_right_transition
@@ -103,39 +92,23 @@ class GRIDModel_multiple_bounds(object):
 
     def cost(self,state,action):  # cost function should return vector of costs, even though there is a single cost function. 
         cost1 = 1.0
-        if state==(0,4) or state==(2,2) or state==(3,4):
-        # if state==(0,4) or state==(2,2) or state==(3,4) or state==(3,3):
+        # if state==(0,4) or state==(2,2) or state==(3,4):
+        if state==(0,4) or state==(2,2) or state==(3,4) or state==(4,1) or state==(4,2) or state==(3,4):
             cost2 = 50.0
-            # cost3 = -50.0
         else:
             cost2 = 0.0
-            # cost3 = 0.0
 
-        if state==(4,0) or state==(3,1):
-        # if state==(4,0) or state==(3,1) or state==(4,1) or state==(2,1) or state==(2,2):
-            cost3 = 50.0
-        else:
-            cost3 = 0.0
-
-        return cost1, cost2, cost3
+        return cost1, cost2
 
     
     def heuristic(self, state,depth=None):
         heuristic1 = math.sqrt((state[0]-self.goal[0])**2 + (state[1]-self.goal[1])**2)
 
         if state==(0,4) or state==(2,2) or state==(3,4):
-            heuristic2 = 0
-            # heuristic3 = -50.0
+            heuristic2 = 50.0
         else:
             heuristic2 = 0
-            # heuristic3 = 0
-
-        if state==(4,0) or state==(3,1):
-            heuristic3 = 0
-        else:
-            heuristic3 = 0
-
-        return heuristic1, heuristic2, heuristic3
+        return heuristic1, heuristic2
 
 
 
@@ -163,12 +136,31 @@ class GRIDModel_multiple_bounds(object):
     #     return [heuristic1, heuristic2]
 
 
+    # def print_policy(self,policy):
+
+    #     print("-"*21)
+    #     for j in [4,3,2,1,0]:
+    #         string = ""
+    #         for i in [0,1,2,3,4]:
+    #             string += "|"
+    #             if (i,j) in policy:
+    #                 if policy[(i,j)]=="Terminal":
+    #                     string += " T "
+    #                 else:
+    #                     string += " "+policy[(i,j)]+" "
+    #             else:
+    #                 string += "   "
+
+    #         string += "|"
+    #         print(string)
+    #         print("-"*21)
+
     def print_policy(self,policy):
 
-        print("-"*21)
-        for j in [4,3,2,1,0]:
+        print("-"*41)
+        for j in [9,8,7,6,5,4,3,2,1,0]:
             string = ""
-            for i in [0,1,2,3,4]:
+            for i in [0,1,2,3,4,5,6,7,8,9]:
                 string += "|"
                 if (i,j) in policy:
                     if policy[(i,j)]=="Terminal":
@@ -180,4 +172,4 @@ class GRIDModel_multiple_bounds(object):
 
             string += "|"
             print(string)
-            print("-"*21)
+            print("-"*41)

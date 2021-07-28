@@ -51,9 +51,9 @@ class CSSPSolver(object):
         # self.anytime_update()
 
 
-    def solve_sg(self, initial_alpha):
+    def solve_sg(self, initial_alpha, h=0.1, rule='constant'):
 
-        self.find_dual_sg(initial_alpha)
+        self.find_dual_sg(initial_alpha, h, rule)
 
 
     def solve_dual_multiple(self, initial_alpha):
@@ -212,12 +212,15 @@ class CSSPSolver(object):
 
 
 
-    def find_dual_sg(self, initial_alpha):
+    def find_dual_sg(self, initial_alpha, h=0.1, rule='constant'):
+
+        alpha_1_list = []
+        alpha_2_list = []
+        weighted_value_list = []
 
         self.algo.value_num = 3
 
         self.algo.alpha = initial_alpha
-        h = 0.5
         k = 1
 
         g = [-1,-1]
@@ -245,17 +248,22 @@ class CSSPSolver(object):
         print("     g: "+str(g))
         print("   w_v: "+str(weighted_value))
         print(" alpha: "+str(self.algo.alpha))
+
+        alpha_1_list.append(self.algo.alpha[0])
+        alpha_2_list.append(self.algo.alpha[1])
+        weighted_value_list.append(weighted_value)
         
         
-        while abs(prev_weighted_value - weighted_value) > 0.1:
+        while abs(prev_weighted_value - weighted_value) > 1e-5:
             prev_weighted_value = weighted_value
 
-            step_size = h
-            # step_size = h/math.sqrt(k)
-            print("*************************")
-            print(step_size)
-            print("*************************")
-
+            if rule=='constant':
+                step_size = h
+            elif rule=='sqrt':
+                step_size = h/math.sqrt(k)
+            elif rule=='quotient':
+                step_size = h/k
+                
             self.algo.alpha[0] = max(0, self.algo.alpha[0] + g[0] * step_size)
             self.algo.alpha[1] = max(0, self.algo.alpha[1] + g[1] * step_size)
 
@@ -263,7 +271,7 @@ class CSSPSolver(object):
             policy = self.resolve_LAOStar()
             value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
             weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
-            
+
             del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
             self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
 
@@ -272,6 +280,10 @@ class CSSPSolver(object):
             g[1] = value_3 - self.bounds[1]
 
             weighted_value = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1]
+
+            alpha_1_list.append(self.algo.alpha[0])
+            alpha_2_list.append(self.algo.alpha[1])
+            weighted_value_list.append(weighted_value)
 
             self.add_anytime_solution(f,g)
 
@@ -284,6 +296,13 @@ class CSSPSolver(object):
             print(" alpha: "+str(self.algo.alpha))
             
             k += 1
+
+            if k>2000:
+                break
+
+        print(alpha_1_list)
+        print(alpha_2_list)
+        print(weighted_value_list)
 
 
 
@@ -354,6 +373,10 @@ class CSSPSolver(object):
             
             for bound_idx in range(len(initial_alpha_set)):  # looping over each bound (coorindate)
 
+                alpha_1_list.append(self.algo.alpha[0])
+                alpha_2_list.append(self.algo.alpha[1])
+                weighted_value_list.append(f_minus + g_minus[0]*self.algo.alpha[0] + g_minus[1]*self.algo.alpha[1])
+
                 print("*"*20)
 
                 # zero case for this coordinate
@@ -372,9 +395,6 @@ class CSSPSolver(object):
                 g_plus.append(value_3 - self.bounds[1])
 
 
-                alpha_1_list.append(self.algo.alpha[0])
-                alpha_2_list.append(self.algo.alpha[1])
-                weighted_value_list.append(f_plus + g_plus[0]*self.algo.alpha[0] + g_plus[1]*self.algo.alpha[1])
 
 
                 # infinite case for this coordinate
@@ -390,9 +410,7 @@ class CSSPSolver(object):
                 g_minus.append(value_2 - self.bounds[0])
                 g_minus.append(value_3 - self.bounds[1])
 
-                alpha_1_list.append(self.algo.alpha[0])
-                alpha_2_list.append(self.algo.alpha[1])
-                weighted_value_list.append(f_minus + g_minus[0]*self.algo.alpha[0] + g_minus[1]*self.algo.alpha[1])
+                
 
 
                 while True:
@@ -427,9 +445,7 @@ class CSSPSolver(object):
 
                     L_u = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1]
 
-                    alpha_1_list.append(self.algo.alpha[0])
-                    alpha_2_list.append(self.algo.alpha[1])
-                    weighted_value_list.append(L_u)
+                    
 
                     print("-"*50)
                     print("time elapsed: "+str(time.time() - self.t_start))
@@ -469,10 +485,14 @@ class CSSPSolver(object):
 
 
 
-                    k += 1
+                k += 1
 
-                if k > 10:
-                    break
+                    
+            # if k>10:
+            #     print(alpha_1_list)
+            #     print(alpha_2_list)
+            #     print(weighted_value_list)
+            #     break
 
 
 
@@ -480,7 +500,10 @@ class CSSPSolver(object):
 
             L_new = L_u
 
-            if abs(L_new - L_prev) < 0.1**300:
+            if abs(L_new - L_prev) < 0.1**5:
+                print(alpha_1_list)
+                print(alpha_2_list)
+                print(weighted_value_list)
                 break
 
             
@@ -678,7 +701,7 @@ class CSSPSolver(object):
 
             L_new = L_u
 
-            if abs(L_new - L_prev) < 1e-3:
+            if abs(L_new - L_prev) < 1e-5:
                 print(alpha_1_list)
                 print(alpha_2_list)
                 print(weighted_value_list)
@@ -968,12 +991,13 @@ class CSSPSolver(object):
 
         for candidate in self.candidate_set:
 
-            if abs(candidate[0] - new_candidate[0]) > 1e-5:
-                continue
+            # if abs(candidate[0] - new_candidate[0]) > 1e-5:
+            #     continue
 
-            else:
-                if self.is_policy_eq(candidate[4], new_candidate[4]):
-                    return True
+            # else:
+            if self.is_policy_eq(candidate[4], new_candidate[4]):
+                return True
+
 
         return False
 
@@ -1111,7 +1135,7 @@ class CSSPSolver(object):
         elif (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
 
             epsilon = 0.01
-            initial_epsilon = 1e-5
+            initial_epsilon = 1e-4
 
             policy_value = self.algo.graph.root.value_1
 
@@ -1214,7 +1238,7 @@ class CSSPSolver(object):
             policy_value = self.algo.graph.root.value_2
             
             epsilon = policy_value - self.bounds[0]
-            initial_epsilon = 1e-5
+            initial_epsilon = 1e-4
 
             state_list = []
             for state, action in current_best_policy.items():

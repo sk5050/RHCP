@@ -92,6 +92,30 @@ def test_racetrack_hard():
 
 
 
+def test_racetrack_hard_full_expansion():
+
+
+    sys.setrecursionlimit(8000)
+
+    map_file = "models/racetrack_hard (copy).txt"
+    traj_check_dict_file = "models/racetrack_hard_traj_check_dict.json"
+    heuristic_file = "models/racetrack_hard_heuristic.json"
+
+    init_state = (3,1,0,0)
+    model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, heuristic_file=heuristic_file, slip_prob=0.1)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+
+
+    bound = 1
+
+
+    solver = MILPSolver(model, bound)
+
+    t = time.time()
+    solver.solve_opt()
+    print("elapsed time: "+str(time.time()-t))
+
+
 
 def test_racetrack():
 
@@ -366,10 +390,16 @@ def test_idual():
 
     bound = 1
 
+    t = time.time()
     solver = IDUAL(model, bound)
 
-    solver.solve()
+    # solver.solve()
 
+    solver.solve_LP_and_MILP()
+
+
+    print("number of nodes expanded: " + str(len(solver.graph.nodes)))
+    print("elapsed time: "+str(time.time() - t))
 
 
     
@@ -384,5 +414,8 @@ def test_idual():
 # test_racetrack_simple()
 
 test_idual()
+
+# test_racetrack_hard_full_expansion()
+
 
 # test_grid()
