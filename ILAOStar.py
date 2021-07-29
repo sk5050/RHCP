@@ -21,8 +21,8 @@ class ILAOStar(object):
         else:
             self.value_num = len(alpha)+1
 
-            if self.value_num > 3:
-                raise ValueError("more than 2 constraints is not implemented yet.")
+            # if self.value_num > 3:
+            #     raise ValueError("more than 2 constraints is not implemented yet.")
 
         self.method = method
         self.VI_epsilon = VI_epsilon
@@ -79,7 +79,7 @@ class ILAOStar(object):
                if child.color == 'w':
                     self.dfs_update(child)
         
-        
+
         if not self.model.is_terminal(node.state) and node.best_action==None:  ## if this node has not been expanded and not terminal, then expand.
             self.expand(node)
 
@@ -99,7 +99,7 @@ class ILAOStar(object):
             weighted_min_value = float('inf')    
 
             for action in actions:
-                new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
+                new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9 = self.compute_value(node,action)
 
                 if self.constrained==False:
                     if new_value_1 < min_value:
@@ -110,13 +110,19 @@ class ILAOStar(object):
                     if self.Lagrangian==False:
                         raise ValueError("need to be implemented for constrained case.")
                     else:
-                        weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                        weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9)
 
                         if weighted_value < weighted_min_value:
                             node.best_action = action
                             min_value_1 = new_value_1
                             min_value_2 = new_value_2
                             min_value_3 = new_value_3
+                            min_value_4 = new_value_4
+                            min_value_5 = new_value_5
+                            min_value_6 = new_value_6
+                            min_value_7 = new_value_7
+                            min_value_8 = new_value_8
+                            min_value_9 = new_value_9
                             weighted_min_value = weighted_value
 
             if not self.constrained:
@@ -125,6 +131,12 @@ class ILAOStar(object):
                 node.value_1 = min_value_1
                 node.value_2 = min_value_2
                 node.value_3 = min_value_3
+                node.value_4 = min_value_4
+                node.value_5 = min_value_5
+                node.value_6 = min_value_6
+                node.value_7 = min_value_7
+                node.value_8 = min_value_8
+                node.value_9 = min_value_9
             children = node.children[node.best_action]
             
 
@@ -231,13 +243,12 @@ class ILAOStar(object):
         # value_1 = self.model.cost(node.state,action) + sum([child.value_1*child_prob for child,child_prob in node.children[action]])
         # value_1 = self.model.cost(node.state,action) + reduce(lambda x,y:x+y, list(map(self.temp,children)))
         
-
         if self.value_num == 1:
             value_1 = self.model.cost(node.state,action)
             for child, child_prob in node.children[action]:
                 value_1 = value_1 + child.value_1*child_prob
            
-            return value_1, None, None
+            return value_1, None, None, None, None, None, None, None, None
 
         elif self.value_num == 2:
             value_1, value_2 = self.model.cost(node.state,action)
@@ -245,7 +256,7 @@ class ILAOStar(object):
                 value_1 = value_1 + child.value_1*child_prob
                 value_2 = value_2 + child.value_2*child_prob
                 
-            return value_1, value_2, None
+            return value_1, value_2, None, None, None, None, None, None, None
 
         elif self.value_num ==3:
             value_1, value_2, value_3 = self.model.cost(node.state,action)
@@ -254,11 +265,89 @@ class ILAOStar(object):
                 value_2 = value_2 + child.value_2*child_prob
                 value_3 = value_3 + child.value_3*child_prob
                 
-            return value_1, value_2, value_3
+            return value_1, value_2, value_3, None, None, None, None, None, None
+
+        
+        elif self.value_num ==4:
+            value_1, value_2, value_3, value_4 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                value_4 = value_4 + child.value_4*child_prob
+                
+            return value_1, value_2, value_3, value_4, None, None, None, None, None
+
+
+        elif self.value_num ==5:
+            value_1, value_2, value_3, value_4, value_5 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                value_4 = value_4 + child.value_4*child_prob
+                value_5 = value_5 + child.value_5*child_prob
+                
+            return value_1, value_2, value_3, value_4, value_5, None, None, None, None
+
+        elif self.value_num ==6:
+            value_1, value_2, value_3, value_4, value_5, value_6 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                value_4 = value_4 + child.value_4*child_prob
+                value_5 = value_5 + child.value_5*child_prob
+                value_6 = value_6 + child.value_6*child_prob
+                
+            return value_1, value_2, value_3, value_4, value_5, value_6, None, None, None
+
+        elif self.value_num ==7:
+            value_1, value_2, value_3, value_4, value_5, value_6, value_7 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                value_4 = value_4 + child.value_4*child_prob
+                value_5 = value_5 + child.value_5*child_prob
+                value_6 = value_6 + child.value_6*child_prob
+                value_7 = value_7 + child.value_7*child_prob
+                
+                
+            return value_1, value_2, value_3, value_4, value_5, value_6, value_7, None, None
+
+        elif self.value_num ==8:
+            value_1, value_2, value_3, value_4, value_5, value_6, value_7, value_8 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                value_4 = value_4 + child.value_4*child_prob
+                value_5 = value_5 + child.value_5*child_prob
+                value_6 = value_6 + child.value_6*child_prob
+                value_7 = value_7 + child.value_7*child_prob
+                value_8 = value_8 + child.value_8*child_prob
+                
+            return value_1, value_2, value_3, value_4, value_5, value_6, value_7, value_8, None
+
+        elif self.value_num ==9:
+            value_1, value_2, value_3, value_4, value_5, value_6, value_7, value_8, value_9 = self.model.cost(node.state,action)
+            for child, child_prob in node.children[action]:
+                value_1 = value_1 + child.value_1*child_prob
+                value_2 = value_2 + child.value_2*child_prob
+                value_3 = value_3 + child.value_3*child_prob
+                value_4 = value_4 + child.value_4*child_prob
+                value_5 = value_5 + child.value_5*child_prob
+                value_6 = value_6 + child.value_6*child_prob
+                value_7 = value_7 + child.value_7*child_prob
+                value_8 = value_8 + child.value_8*child_prob
+                value_9 = value_9 + child.value_9*child_prob
+                
+            return value_1, value_2, value_3, value_4, value_5, value_6, value_7, value_8, value_9
 
 
 
-    def compute_weighted_value(self,value_1, value_2, value_3):
+    def compute_weighted_value(self,value_1, value_2, value_3, value_4, value_5, value_6, value_7, value_8, value_9):
 
         if self.value_num == 1:
             raise ValueError("seems there is no constraint but weighted value is being computed.")
@@ -268,6 +357,26 @@ class ILAOStar(object):
 
         elif self.value_num == 3:
             weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3
+
+        elif self.value_num == 4:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3 + self.alpha[2]*value_4
+
+        elif self.value_num == 5:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3 + self.alpha[2]*value_4 + self.alpha[3]*value_5
+
+        elif self.value_num == 6:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3 + self.alpha[2]*value_4 + self.alpha[3]*value_5 + self.alpha[4]*value_6
+
+        elif self.value_num == 7:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3 + self.alpha[2]*value_4 + self.alpha[3]*value_5 + self.alpha[4]*value_6 + self.alpha[5]*value_7
+
+        elif self.value_num == 8:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3 + self.alpha[2]*value_4 + self.alpha[3]*value_5 + self.alpha[4]*value_6 + self.alpha[5]*value_7 \
+                             + self.alpha[6]*value_8
+
+        elif self.value_num == 9:
+            weighted_cost = value_1 + self.alpha[0]*value_2 + self.alpha[1]*value_3 + self.alpha[2]*value_4 + self.alpha[3]*value_5 + self.alpha[4]*value_6 + self.alpha[5]*value_7 \
+                             + self.alpha[6]*value_8 + self.alpha[7]*value_9
 
         return weighted_cost
     
@@ -288,7 +397,8 @@ class ILAOStar(object):
                     if not self.constrained:
                         V_prev[node.state] = node.value_1
                     else:
-                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3,node.value_4,node.value_5, \
+                                                                         node.value_6,node.value_7,node.value_8,node.value_9)
 
  
                     if self.incremental==False:
@@ -308,7 +418,7 @@ class ILAOStar(object):
 
                     for action in actions:
                         
-                        new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
+                        new_value_1, new_value_2, new_value_3, new_value_4, new_value_5,new_value_6, new_value_7, new_value_8, new_value_9 = self.compute_value(node,action)
 
                         if self.constrained==False:  # simple SSP case
                             if new_value_1 < min_value:
@@ -319,12 +429,18 @@ class ILAOStar(object):
                             if self.Lagrangian==False:
                                 raise ValueError("need to be implemented for constrained case.")
                             else:
-                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3, new_value_4, new_value_5,new_value_6, new_value_7, new_value_8, new_value_9)
 
                                 if weighted_value < weighted_min_value:
                                     min_value_1 = new_value_1
                                     min_value_2 = new_value_2
                                     min_value_3 = new_value_3
+                                    min_value_4 = new_value_4
+                                    min_value_5 = new_value_5
+                                    min_value_6 = new_value_6
+                                    min_value_7 = new_value_7
+                                    min_value_8 = new_value_8
+                                    min_value_9 = new_value_9
                                     weighted_min_value = weighted_value
                                     best_action = action
 
@@ -337,6 +453,12 @@ class ILAOStar(object):
                         node.value_1 = min_value_1
                         node.value_2 = min_value_2
                         node.value_3 = min_value_3
+                        node.value_4 = min_value_4
+                        node.value_5 = min_value_5
+                        node.value_6 = min_value_6
+                        node.value_7 = min_value_7
+                        node.value_8 = min_value_8
+                        node.value_9 = min_value_9
 
                     node.best_action = best_action
 
@@ -391,7 +513,8 @@ class ILAOStar(object):
                         if not self.constrained:
                             V_prev[node.state] = node.value_1
                         else:
-                            V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+                            V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3,node.value_4,node.value_5,\
+                                                                             node.value_6,node.value_7,node.value_8,node.value_9)
 
 
                         if self.incremental==False:
@@ -411,7 +534,7 @@ class ILAOStar(object):
 
                         for action in actions:
 
-                            new_value_1, new_value_2, new_value_3 = self.compute_value(node,action)
+                            new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9 = self.compute_value(node,action)
 
                             if self.constrained==False:  # simple SSP case
                                 if new_value_1 < min_value:
@@ -422,12 +545,18 @@ class ILAOStar(object):
                                 if self.Lagrangian==False:
                                     raise ValueError("need to be implemented for constrained case.")
                                 else:
-                                    weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                                    weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9)
 
                                     if weighted_value < weighted_min_value:
                                         min_value_1 = new_value_1
                                         min_value_2 = new_value_2
                                         min_value_3 = new_value_3
+                                        min_value_4 = new_value_4
+                                        min_value_5 = new_value_5
+                                        min_value_6 = new_value_6
+                                        min_value_7 = new_value_7
+                                        min_value_8 = new_value_8
+                                        min_value_9 = new_value_9
                                         weighted_min_value = weighted_value
                                         best_action = action
 
@@ -440,6 +569,12 @@ class ILAOStar(object):
                             node.value_1 = min_value_1
                             node.value_2 = min_value_2
                             node.value_3 = min_value_3
+                            node.value_4 = min_value_4
+                            node.value_5 = min_value_5
+                            node.value_6 = min_value_6
+                            node.value_7 = min_value_7
+                            node.value_8 = min_value_8
+                            node.value_9 = min_value_9
 
                         node.best_action = best_action
 
@@ -509,7 +644,7 @@ class ILAOStar(object):
                     weighted_min_value = float('inf')
                     
                     for action in actions:
-                        new_value_1,new_value_2,new_value_3 = self.compute_value(node,action)
+                        new_value_1,new_value_2,new_value_3,new_value_4,new_value_5,new_value_6,new_value_7,new_value_8,new_value_9 = self.compute_value(node,action)
 
                         if self.constrained==False:
                             if new_value_1 < min_value:
@@ -520,13 +655,19 @@ class ILAOStar(object):
                             if self.Lagrangian==False:
                                 raise ValueError("need to be implemented for constrained case.")
                             else:
-                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                                weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9)
 
                                 if weighted_value < weighted_min_value:
                                     node.best_action = action
                                     min_value_1 = new_value_1
                                     min_value_2 = new_value_2
                                     min_value_3 = new_value_3
+                                    min_value_4 = new_value_4
+                                    min_value_5 = new_value_5
+                                    min_value_6 = new_value_6
+                                    min_value_7 = new_value_7
+                                    min_value_8 = new_value_8
+                                    min_value_9 = new_value_9
                                     weighted_min_value = weighted_value
                                     
 
@@ -536,6 +677,12 @@ class ILAOStar(object):
                         node.value_1 = min_value_1
                         node.value_2 = min_value_2
                         node.value_3 = min_value_3
+                        node.value_4 = min_value_4
+                        node.value_5 = min_value_5
+                        node.value_6 = min_value_6
+                        node.value_7 = min_value_7
+                        node.value_8 = min_value_8
+                        node.value_9 = min_value_9
                         
                     children = node.children[node.best_action]
 
@@ -588,7 +735,6 @@ class ILAOStar(object):
         while queue:
 
             node = queue.pop()
-
 
             if node in visited:
                 continue
@@ -666,13 +812,33 @@ class ILAOStar(object):
     def get_values(self,node):
 
         if self.value_num == 1:
-            return node.value_1, None, None
+            return node.value_1, None, None, None, None, None, None, None, None
 
-        elif self.value_num == 2:
-            return node.value_1, node.value_2, None
+        elif self.value_num ==2:
+            return node.value_1, node.value_2, None, None, None, None, None, None, None
 
         elif self.value_num ==3:
-            return node.value_1, node.value_2, node.value_3
+            return node.value_1, node.value_2, node.value_3, None, None, None, None, None, None
+
+        elif self.value_num ==4:
+            return node.value_1, node.value_2, node.value_3, node.value_4, None, None, None, None, None
+
+        elif self.value_num ==5:
+            return node.value_1, node.value_2, node.value_3, node.value_4, node.value_5, None, None, None, None
+
+        elif self.value_num ==6:
+            return node.value_1, node.value_2, node.value_3, node.value_4, node.value_5, node.value_6, None, None, None
+
+        elif self.value_num ==7:
+            return node.value_1, node.value_2, node.value_3, node.value_4, node.value_5, node.value_6, node.value_7, None, None
+
+        elif self.value_num ==8:
+            return node.value_1, node.value_2, node.value_3, node.value_4, node.value_5, node.value_6, node.value_7, node.value_8, None
+
+        elif self.value_num ==9:
+            return node.value_1, node.value_2, node.value_3, node.value_4, node.value_5, node.value_6, node.value_7, node.value_8, node.value_9
+
+        
 
 
 
@@ -726,7 +892,8 @@ class ILAOStar(object):
                     if not self.constrained:
                         V_prev[node.state] = node.value_1
                     else:
-                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3)
+                        V_prev[node.state] = self.compute_weighted_value(node.value_1,node.value_2,node.value_3,node.value_4,node.value_5,\
+                                                                         node.value_6,node.value_7,node.value_8,node.value_9)
 
  
                     
@@ -738,7 +905,7 @@ class ILAOStar(object):
                     weighted_min_value = float('inf')
 
                         
-                    new_value_1, new_value_2, new_value_3 = self.compute_value(node,policy[node.state])
+                    new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9 = self.compute_value(node,policy[node.state])
 
                     if self.constrained==False:  # simple SSP case
                         min_value = new_value_1
@@ -748,11 +915,17 @@ class ILAOStar(object):
                         if self.Lagrangian==False:
                             raise ValueError("need to be implemented for constrained case.")
                         else:
-                            weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3)
+                            weighted_value = self.compute_weighted_value(new_value_1, new_value_2, new_value_3, new_value_4, new_value_5, new_value_6, new_value_7, new_value_8, new_value_9)
 
                             min_value_1 = new_value_1
                             min_value_2 = new_value_2
                             min_value_3 = new_value_3
+                            min_value_4 = new_value_4
+                            min_value_5 = new_value_5
+                            min_value_6 = new_value_6
+                            min_value_7 = new_value_7
+                            min_value_8 = new_value_8
+                            min_value_9 = new_value_9
                             weighted_min_value = weighted_value
 
 
@@ -764,6 +937,12 @@ class ILAOStar(object):
                         node.value_1 = min_value_1
                         node.value_2 = min_value_2
                         node.value_3 = min_value_3
+                        node.value_4 = min_value_4
+                        node.value_5 = min_value_5
+                        node.value_6 = min_value_6
+                        node.value_7 = min_value_7
+                        node.value_8 = min_value_8
+                        node.value_9 = min_value_9
 
 
                     error = abs(V_prev[node.state] - V_new[node.state])

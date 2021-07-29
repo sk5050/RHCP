@@ -30,12 +30,18 @@ class Node(GraphElement):
     Class for nodes in the graph.
     """
 
-    def __init__(self, state, value_1, value_2, value_3, best_action=None, terminal=False):
+    def __init__(self, state, value_1, value_2, value_3, value_4, value_5, value_6,value_7,value_8,value_9, best_action=None, terminal=False):
         super(Node, self).__init__(state)
         
         self.value_1 = value_1
         self.value_2 = value_2
         self.value_3 = value_3
+        self.value_4 = value_4
+        self.value_5 = value_5
+        self.value_6 = value_6
+        self.value_7 = value_7
+        self.value_8 = value_8
+        self.value_9 = value_9
         self.terminal = terminal  # Terminal flag
         self.state = state
         self.best_action = best_action  # Best action at the node
@@ -55,6 +61,12 @@ class Node(GraphElement):
         self.value_1 = 0
         self.value_2 = 0
         self.value_3 = 0
+        self.value_4 = 0
+        self.valeu_5 = 0
+        self.value_6 = 0
+        self.value_7 = 0
+        self.value_8 = 0
+        self.valeu_9 = 0
 
 
 
@@ -152,20 +164,20 @@ class Graph(GraphElement):
     #             'The root of the hypergraph must be of type RAOStarGraphNode.')
 
 
-    def add_root(self, state, value_1=None, value_2=None, value_3=None, best_action=None, terminal=False):
+    def add_root(self, state, value_1=None, value_2=None, value_3=None,value_4=None,value_5=None,value_6=None, value_7=None,value_8=None,value_9=None, best_action=None, terminal=False):
         """Adds a node to the hypergraph."""
         if not state in self.nodes:
-            self.nodes[state] = Node(state, value_1, value_2, value_3, best_action, terminal)
+            self.nodes[state] = Node(state, value_1, value_2, value_3, value_4, value_5,value_6, value_7, value_8, value_9, best_action, terminal)
             self.root = self.nodes[state]
             return True
         else:
             return False
 
     
-    def add_node(self, state, value_1=None, value_2=None, value_3=None, best_action=None, terminal=False):
+    def add_node(self, state, value_1=None, value_2=None, value_3=None,value_4=None,value_5=None,value_6=None, value_7=None,value_8=None,value_9=None, best_action=None, terminal=False):
         """Adds a node to the hypergraph."""
         if not state in self.nodes:
-            self.nodes[state] = Node(state, value_1, value_2, value_3, best_action, terminal)
+            self.nodes[state] = Node(state, value_1, value_2, value_3, value_4, value_5,value_6, value_7, value_8, value_9, best_action, terminal)
             return True
         else:
             return False

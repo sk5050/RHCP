@@ -75,8 +75,8 @@ class CSSPSolver(object):
         self.algo.alpha = [initial_alpha_set[0][0]]
 
         policy = self.algo.solve()
-        value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+        value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9)
         self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
         
         f_plus = value_1
@@ -96,8 +96,8 @@ class CSSPSolver(object):
         
         # infinite case
         policy = self.resolve_LAOStar([initial_alpha_set[0][1]])
-        value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+        value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9)
 
         del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
         self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
@@ -132,8 +132,8 @@ class CSSPSolver(object):
            
             # evaluate L(u), f, g
             policy = self.resolve_LAOStar([alpha])
-            value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-            weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+            value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+            weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9)
 
             del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
             self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
@@ -229,8 +229,8 @@ class CSSPSolver(object):
 
 
         policy = self.algo.solve()
-        value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+        value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9)
         self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
         
         f = value_1
@@ -269,8 +269,8 @@ class CSSPSolver(object):
 
 
             policy = self.resolve_LAOStar()
-            value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-            weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+            value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+            weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9)
 
             del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
             self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
@@ -885,8 +885,8 @@ class CSSPSolver(object):
         self.algo.fringe = set([node])
         policy = self.algo.solve()
 
-        value_1,value_2,value_3 = self.algo.get_values(self.algo.graph.root)
-        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3)
+        value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9)
 
         self.add_anytime_solution(value_1, value_2 - self.bounds[0])
 

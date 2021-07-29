@@ -22,7 +22,7 @@ class ELEVATORModel(object):
         self.hidden_origin = hidden_origin
         # self.goal = goal
 
-        self.action_list = ["U","D","S"]
+        self.action_list = ["U","D"]#,"S"]
 
         
     def actions(self, state):
@@ -30,7 +30,11 @@ class ELEVATORModel(object):
 
     
     def is_terminal(self, state):
-        return max(state[0]) == -2
+
+        if max(state[0]) == -2 and max(state[1]) == -2:
+            return True
+        else:
+            return False
 
     
     def state_transitions(self, state, action):
@@ -70,7 +74,7 @@ class ELEVATORModel(object):
                 new_hidden_pos.append(hidden_pos)
                 continue
             elif hidden_pos==-1:
-                if current_pos==self.hidden_dest(hidden_ind):
+                if current_pos==self.hidden_dest[hidden_ind]:
                     new_hidden_pos.append(-2)
                 else:
                     new_hidden_pos.append(hidden_pos)
@@ -86,7 +90,7 @@ class ELEVATORModel(object):
         elif action=='D':
             new_pos = max(1, current_pos - 1)
         elif action=='S':
-            new_pos = currnet_pos
+            new_pos = current_pos
                     
         new_states = [[[new_px_pos, new_hidden_pos, new_pos], 1.0]]
 
@@ -103,10 +107,13 @@ class ELEVATORModel(object):
 
             new_states = new_states_temp
                 
-                    
-            
 
-        return new_states
+
+        new_states_in_tuple = []
+        for new_state in new_states:
+            new_states_in_tuple.append([(tuple(new_state[0][0]), tuple(new_state[0][1]), new_state[0][2]), new_state[1]])
+
+        return new_states_in_tuple
 
 
 
@@ -126,22 +133,42 @@ class ELEVATORModel(object):
         else:
             cost3 = 0.0
 
-        if state[1][0]>0:
+        if state[0][1]>0:
             cost4 = 1.0
         else:
             cost4 = 0.0
 
-        if state[1][0]==-1:
+        if state[0][1]==-1:
             cost5 = 1.0
         else:
             cost5 = 0.0
+
+        if state[1][0]>0:
+            cost6 = 1.0
+        else:
+            cost6 = 0.0
+
+        if state[1][0]==-1:
+            cost7 = 1.0
+        else:
+            cost7 = 0.0
+
+        if state[1][1]>0:
+            cost8 = 1.0
+        else:
+            cost8 = 0.0
+
+        if state[1][1]==-1:
+            cost9 = 1.0
+        else:
+            cost9 = 0.0
             
             
 
-        return cost1, cost2, cost3, cost4, cost5
+        return cost1, cost2, cost3, cost4, cost5, cost6, cost7, cost8, cost9
 
     
     def heuristic(self, state,depth=None):
-        return 0,0,0,0,0
+        return 0,0,0,0,0,0,0,0,0
 
 
