@@ -522,6 +522,278 @@ class CSSPSolver(object):
 
 
 
+    def find_dual_multiple_bounds_generalized(self, initial_alpha_set):
+
+        k = 0
+
+        alpha_1_list = []
+        alpha_2_list = []
+        weighted_value_list = []
+
+        self.algo.value_num = 7
+
+        ###### TODO: functionize "solve_LAOStar with 'resolve' as an option"
+
+
+        # overall zero case
+        self.algo.alpha = [alpha_set[0] for alpha_set in initial_alpha_set]
+
+        policy = self.algo.solve()
+        value_1 = self.algo.graph.root.value_1
+        value_2 = self.algo.graph.root.value_2
+        value_3 = self.algo.graph.root.value_3
+        value_4 = self.algo.graph.root.value_4
+        value_5 = self.algo.graph.root.value_5
+        value_6 = self.algo.graph.root.value_6
+        value_7 = self.algo.graph.root.value_7
+
+        f_plus = value_1
+        g_plus = list()
+        g_plus.append(value_2 - self.bounds[0])
+        g_plus.append(value_3 - self.bounds[1])
+        g_plus.append(value_4 - self.bounds[2])
+        g_plus.append(value_5 - self.bounds[3])
+        g_plus.append(value_6 - self.bounds[4])
+        g_plus.append(value_7 - self.bounds[5])
+
+        self.add_anytime_solution(f_plus, g_plus)
+
+        print("---------- zero case --------")
+        print("time elapsed: "+str(time.time() - self.t_start))
+        print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+        print("     f: "+str(f_plus))
+        print("     g: "+str(g_plus))
+
+
+        ###### TODO: Need to check whether this solution is feasible, which is the case that we already found optima.
+
+
+        # overall infinite case
+        self.algo.alpha = [alpha_set[1] for alpha_set in initial_alpha_set]
+        self.resolve_LAOStar()
+
+        value_1 = self.algo.graph.root.value_1
+        value_2 = self.algo.graph.root.value_2
+        value_3 = self.algo.graph.root.value_3
+        value_4 = self.algo.graph.root.value_4
+        value_5 = self.algo.graph.root.value_5
+        value_6 = self.algo.graph.root.value_6
+        value_7 = self.algo.graph.root.value_7
+
+        f_minus = value_1
+        g_minus = list()
+        g_minus.append(value_2 - self.bounds[0])
+        g_minus.append(value_3 - self.bounds[1])
+        g_minus.append(value_4 - self.bounds[2])
+        g_minus.append(value_5 - self.bounds[3])
+        g_minus.append(value_6 - self.bounds[4])
+        g_minus.append(value_7 - self.bounds[5])
+
+        self.add_anytime_solution(f_minus, g_minus)
+
+        print("---------- infinite case --------")
+        print("time elapsed: "+str(time.time() - self.t_start))
+        print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+        print("     f: "+str(f_minus))
+        print("     g: "+str(g_minus))
+
+
+        ###### TODO: Need to check whether this solution is infeasible, which is the case that the problem is infeasible, or alpha_max is not large enough.
+
+
+        
+        self.algo.alpha = [alpha_set[1] for alpha_set in initial_alpha_set]
+
+        L_new = f_plus + self.algo.alpha[0]*g_plus[0] + self.algo.alpha[1]*g_plus[1] + self.algo.alpha[2]*g_plus[2] \
+                       + self.algo.alpha[3]*g_plus[3] + self.algo.alpha[4]*g_plus[4] + self.algo.alpha[5]*g_plus[5]
+        while True:
+
+            for bound_idx in range(len(initial_alpha_set)):  # looping over each bound (coorindate)
+
+                L_prev = L_new
+
+                # zero case for this coordinate
+                self.algo.alpha[bound_idx] = initial_alpha_set[bound_idx][0]
+                self.resolve_LAOStar()
+
+
+
+                value_1 = self.algo.graph.root.value_1
+                value_2 = self.algo.graph.root.value_2
+                value_3 = self.algo.graph.root.value_3
+                value_4 = self.algo.graph.root.value_4
+                value_5 = self.algo.graph.root.value_5
+                value_6 = self.algo.graph.root.value_6
+                value_7 = self.algo.graph.root.value_7
+
+                f_plus = value_1
+                g_plus = list()
+                g_plus.append(value_2 - self.bounds[0])
+                g_plus.append(value_3 - self.bounds[1])
+                g_plus.append(value_4 - self.bounds[2])
+                g_plus.append(value_5 - self.bounds[3])
+                g_plus.append(value_6 - self.bounds[4])
+                g_plus.append(value_7 - self.bounds[5])
+
+                
+                self.add_anytime_solution(f_plus, g_plus)
+
+
+                # print("-"*50)
+                # print("time elapsed: "+str(time.time() - self.t_start))
+                # print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+                # print("     f: "+str(f_plus))
+                # print("     g: "+str(g_plus))
+                # print(" alpha:"+str(self.algo.alpha))
+
+
+                # infinite case for this coordinate
+                self.algo.alpha[bound_idx] = initial_alpha_set[bound_idx][1]
+                self.resolve_LAOStar()
+
+                value_1 = self.algo.graph.root.value_1
+                value_2 = self.algo.graph.root.value_2
+                value_3 = self.algo.graph.root.value_3
+                value_4 = self.algo.graph.root.value_4
+                value_5 = self.algo.graph.root.value_5
+                value_6 = self.algo.graph.root.value_6
+                value_7 = self.algo.graph.root.value_7
+
+                f_minus = value_1
+                g_minus = list()
+                g_minus.append(value_2 - self.bounds[0])
+                g_minus.append(value_3 - self.bounds[1])
+                g_minus.append(value_4 - self.bounds[2])
+                g_minus.append(value_5 - self.bounds[3])
+                g_minus.append(value_6 - self.bounds[4])
+                g_minus.append(value_7 - self.bounds[5])
+                
+                self.add_anytime_solution(f_minus, g_minus)
+
+
+                # print("-"*50)
+                # print("time elapsed: "+str(time.time() - self.t_start))
+                # print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+                # print("     f: "+str(f_minus))
+                # print("     g: "+str(g_minus))
+                # print(" alpha:"+str(self.algo.alpha))
+                
+
+
+                while True:
+
+                    if g_minus[bound_idx] == g_plus[bound_idx]:
+                        f = f_minus
+                        g = g_minus
+                        L_u = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1] + self.algo.alpha[2]*g[2] + self.algo.alpha[3]*g[3] \
+                            + self.algo.alpha[4]*g[4] + self.algo.alpha[5]*g[5]
+
+                        break
+
+                    new_alpha_comp = (f_plus - f_minus)
+
+                    for bound_idx_inner in range(len(initial_alpha_set)):
+                        if bound_idx_inner==bound_idx:
+                            continue
+
+                        new_alpha_comp += self.algo.alpha[bound_idx_inner] * (g_plus[bound_idx_inner] - g_minus[bound_idx_inner])
+
+                    new_alpha_comp = new_alpha_comp / (g_minus[bound_idx]- g_plus[bound_idx])
+
+                    self.algo.alpha[bound_idx] = new_alpha_comp
+
+
+                    L = f_plus + self.algo.alpha[0]*g_plus[0] + self.algo.alpha[1]*g_plus[1] + self.algo.alpha[2]*g_plus[2] + self.algo.alpha[3]*g_plus[3] \
+                               + self.algo.alpha[4]*g_plus[4] + self.algo.alpha[5]*g_plus[5]
+                    UB = float('inf')
+
+
+                    self.resolve_LAOStar()
+
+                    value_1 = self.algo.graph.root.value_1
+                    value_2 = self.algo.graph.root.value_2
+                    value_3 = self.algo.graph.root.value_3
+                    value_4 = self.algo.graph.root.value_4
+                    value_5 = self.algo.graph.root.value_5
+                    value_6 = self.algo.graph.root.value_6
+                    value_7 = self.algo.graph.root.value_7
+                    
+
+                    f = value_1
+                    g = list()
+                    g.append(value_2 - self.bounds[0])
+                    g.append(value_3 - self.bounds[1])
+                    g.append(value_4 - self.bounds[2])
+                    g.append(value_5 - self.bounds[3])
+                    g.append(value_6 - self.bounds[4])
+                    g.append(value_7 - self.bounds[5])
+
+                    self.add_anytime_solution(f, g)
+
+                    L_u = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1] + self.algo.alpha[2]*g[2] + self.algo.alpha[3]*g[3] \
+                            + self.algo.alpha[4]*g[4] + self.algo.alpha[5]*g[5]
+
+
+
+                    # cases
+                    if abs(L_u - L)<0.1**10 and g[bound_idx] < 0:
+                        LB = L_u
+                        UB = min(f, UB)
+                        break
+
+                    elif abs(L_u - L)<0.1**10 and g[bound_idx] > 0:
+                        LB = L_u
+                        UB = f_minus
+                        break
+
+                    elif L_u < L and g[bound_idx] > 0:
+                        f_plus = f
+                        g_plus = g
+
+                    elif L_u < L and g[bound_idx] < 0:
+                        f_minus = f
+                        g_minus = g
+                        UB = min(UB, f)
+
+                    elif g[bound_idx]==0:
+                        raise ValueError("opt solution found during phase 1. not implented for this case yet.")
+
+                    elif L_u > L :
+                        print(L_u)
+                        print(L)
+                        raise ValueError("impossible case. Something must be wrong")
+
+
+                print("-"*50)
+                print("time elapsed: "+str(time.time() - self.t_start))
+                print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+                print("     f: "+str(f))
+                print("     g: "+str(g))
+                print("     L: "+str(L_u))
+
+
+                k += 1
+
+
+
+                ## optimality check for this entire envelop    
+
+                L_new = L_u
+
+                if abs(L_new - L_prev) < 0.1**5:
+                    print("dual optima with the following values:")
+                    print(" alpha:"+str(self.algo.alpha))
+                    print("     L: "+str(L))
+                    print("     f: "+str(f))
+                    print("     g: "+str(g))
+
+                    # return True
+
+                    
+
+
+
+
 
     def find_dual_line_search(self, initial_alpha_set):
 
@@ -533,10 +805,32 @@ class CSSPSolver(object):
 
         self.algo.value_num = 3
 
+
+
+        # overall zero case
+        self.algo.alpha = [alpha_set[0] for alpha_set in initial_alpha_set]
+
+        policy = self.algo.solve()
+        value_1 = self.algo.graph.root.value_1
+        value_2 = self.algo.graph.root.value_2
+        value_3 = self.algo.graph.root.value_3
+
+        f = value_1
+        g = list()
+        g.append(value_2 - self.bounds[0])
+        g.append(value_3 - self.bounds[1])
+
+        self.add_anytime_solution(f, g)
+
+        if g[0]<=0 and g[1]<=0:
+            print("trivially feasible")
+            return True
+        
+
         # overall infinite case
         print("---------- infinite case --------")
         self.algo.alpha = [alpha_set[1] for alpha_set in initial_alpha_set]
-        self.algo.solve()
+        self.resolve_LAOStar()
 
         value_1 = self.algo.graph.root.value_1
         value_2 = self.algo.graph.root.value_2
@@ -547,6 +841,7 @@ class CSSPSolver(object):
         g.append(value_2 - self.bounds[0])
         g.append(value_3 - self.bounds[1])
 
+        self.add_anytime_solution(f, g)
 
         L_new = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1]
 
@@ -587,6 +882,8 @@ class CSSPSolver(object):
             g_1.append(value_2 - self.bounds[0])
             g_1.append(value_3 - self.bounds[1])
 
+            self.add_anytime_solution(f_1, g_1)
+
             gradient_1 = g_1[0]*line_vector[0] + g_1[1]*line_vector[1]
 
             if gradient_1==0:
@@ -610,13 +907,34 @@ class CSSPSolver(object):
             g_2.append(value_2 - self.bounds[0])
             g_2.append(value_3 - self.bounds[1])
 
+            self.add_anytime_solution(f_2, g_2)
+
             gradient_2 = g_2[0]*line_vector[0] + g_2[1]*line_vector[1]
 
             if gradient_2==0:
                 print("this solution is optimal")
 
             if gradient_1 * gradient_2 > 0:
-                print("this case not implemented yet: solution with higher L is optimal")
+                print(self.anytime_solutions)
+                # time.sleep(10000)
+                # # L1 = f_1 + self.algo.alpha[0]*g_1[0] + self.algo.alpha[1]*g_1[1]
+                # # L2 = f_2 + self.algo.alpha[0]*g_2[0] + self.algo.alpha[1]*g_2[1]
+
+                # # if L1 > L2:
+                # #     L_u = L1
+                # # else:
+                # #     L_u = L2
+
+                # # k += 1
+                # # L_new = L_u
+
+                # # if abs(L_new - L_prev) < 1e-5:
+                # #     print(alpha_1_list)
+                # #     print(alpha_2_list)
+                # #     print(weighted_value_list)
+                # #     break
+
+                # # continue
 
 
             if gradient_1 > 0:
@@ -651,6 +969,8 @@ class CSSPSolver(object):
                 g = list()
                 g.append(value_2 - self.bounds[0])
                 g.append(value_3 - self.bounds[1])
+
+                self.add_anytime_solution(f, g)
 
                 gradient = g[0]*line_vector[0] + g[1]*line_vector[1]
 
@@ -708,10 +1028,232 @@ class CSSPSolver(object):
                 break
 
 
+
+
+
+
+
+    # def find_dual_line_search_generalized(self, initial_alpha_set):
+
+    #     k = 0
+
+    #     alpha_1_list = []
+    #     alpha_2_list = []
+    #     weighted_value_list = []
+
+    #     self.algo.value_num = 7
+
+    #     # overall infinite case
+    #     print("---------- infinite case --------")
+    #     self.algo.alpha = [alpha_set[1] for alpha_set in initial_alpha_set]
+    #     self.algo.solve()
+
+    #     value_1 = self.algo.graph.root.value_1
+    #     value_2 = self.algo.graph.root.value_2
+    #     value_3 = self.algo.graph.root.value_3
+    #     value_4 = self.algo.graph.root.value_4
+    #     value_5 = self.algo.graph.root.value_5
+    #     value_6 = self.algo.graph.root.value_6
+    #     value_7 = self.algo.graph.root.value_7
+
+    #     f = value_1
+    #     g = list()
+    #     g.append(value_2 - self.bounds[0])
+    #     g.append(value_3 - self.bounds[1])
+    #     g.append(value_4 - self.bounds[2])
+    #     g.append(value_5 - self.bounds[3])
+    #     g.append(value_6 - self.bounds[4])
+    #     g.append(value_7 - self.bounds[5])
+
+
+    #     L_new = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1]\
+    #               + self.algo.alpha[2]*g[2] + self.algo.alpha[3]*g[3] + self.algo.alpha[4]*g[4] + self.algo.alpha[5]*g[5]
+
+    #     while True:
+
+    #         L_prev = L_new
+
+    #         if k==0:
+    #             direction = g
+    #         else:
+    #             direction = [-g_minus[1]+g_plus[1], -g_plus[0]+g_minus[0]]
+    #         alpha_bound_1, alpha_bound_2 = self.compute_alpha_bounds(direction, initial_alpha_set)
+
+    #         line_vector = [alpha_bound_2[0] - alpha_bound_1[0], alpha_bound_2[1] - alpha_bound_1[1]]
+
+    #         #### TODO: if prev g_minus* and g_plus* in terms of this new line vector has diff sign (or at least one is zero), then dual opt is found.
+
+
+    #         # if k==0 and alpha_bound_1 == [alpha_set[1] for alpha_set in initial_alpha_set]:
+    #         #     f_1 = f
+    #         #     g_1 = g
+
+    #         # else:
+    #         self.algo.alpha = alpha_bound_1
+    #         self.resolve_LAOStar()
+
+    #         value_1 = self.algo.graph.root.value_1
+    #         value_2 = self.algo.graph.root.value_2
+    #         value_3 = self.algo.graph.root.value_3
+    #         value_4 = self.algo.graph.root.value_4
+    #         value_5 = self.algo.graph.root.value_5
+    #         value_6 = self.algo.graph.root.value_6
+    #         value_7 = self.algo.graph.root.value_7
+
+    #         f_1 = value_1
+    #         g_1 = list()
+    #         g_1.append(value_2 - self.bounds[0])
+    #         g_1.append(value_3 - self.bounds[1])
+    #         g_1.append(value_4 - self.bounds[2])
+    #         g_1.append(value_5 - self.bounds[3])
+    #         g_1.append(value_6 - self.bounds[4])
+    #         g_1.append(value_7 - self.bounds[5])
+
+    #         gradient_1 = g_1[0]*line_vector[0] + g_1[1]*line_vector[1]
+
+    #         if gradient_1==0:
+    #             print("this case not implemented yet: this solution is optimal")
+
+
+    #         # if k==0 and alpha_bound_2 == [alpha_set[1] for alpha_set in initial_alpha_set]:
+    #         #     f_2 = f
+    #         #     g_2 = g
+
+    #         # else:
+    #         self.algo.alpha = alpha_bound_2
+    #         self.resolve_LAOStar()
+
+    #         value_1 = self.algo.graph.root.value_1
+    #         value_2 = self.algo.graph.root.value_2
+    #         value_3 = self.algo.graph.root.value_3
+    #         value_4 = self.algo.graph.root.value_4
+    #         value_5 = self.algo.graph.root.value_5
+    #         value_6 = self.algo.graph.root.value_6
+    #         value_7 = self.algo.graph.root.value_7
+
+    #         f_2 = value_1
+    #         g_2 = list()
+    #         g_2.append(value_2 - self.bounds[0])
+    #         g_2.append(value_3 - self.bounds[1])
+    #         g_2.append(value_4 - self.bounds[2])
+    #         g_2.append(value_5 - self.bounds[3])
+    #         g_2.append(value_6 - self.bounds[4])
+    #         g_2.append(value_7 - self.bounds[5])
+
+    #         gradient_2 = g_2[0]*line_vector[0] + g_2[1]*line_vector[1]
+
+    #         if gradient_2==0:
+    #             print("this solution is optimal")
+
+    #         if gradient_1 * gradient_2 > 0:
+    #             print("this case not implemented yet: solution with higher L is optimal")
+
+
+    #         if gradient_1 > 0:
+    #             f_plus = f_1
+    #             g_plus = g_1
+                
+    #             f_minus = f_2
+    #             g_minus = g_2
+                
+    #         else:
+    #             f_plus = f_2
+    #             g_plus = g_2
+                
+    #             f_minus = f_1
+    #             g_minus = g_1
+
+
+    #         while True:
+
+    #             self.algo.alpha = self.compute_new_alpha(f_minus, g_minus, f_plus, g_plus, line_vector)
+
+    #             L = f_plus + self.algo.alpha[0]*g_plus[0] + self.algo.alpha[1]*g_plus[1]
+    #             UB = float('inf')
+
+    #             self.resolve_LAOStar()
+
+    #             value_1 = self.algo.graph.root.value_1
+    #             value_2 = self.algo.graph.root.value_2
+    #             value_3 = self.algo.graph.root.value_3
+    #             value_4 = self.algo.graph.root.value_4
+    #             value_5 = self.algo.graph.root.value_5
+    #             value_6 = self.algo.graph.root.value_6
+    #             value_7 = self.algo.graph.root.value_7
+
+    #             f = value_1
+    #             g = list()
+    #             g.append(value_2 - self.bounds[0])
+    #             g.append(value_3 - self.bounds[1])
+    #             g.append(value_4 - self.bounds[2])
+    #             g.append(value_5 - self.bounds[3])
+    #             g.append(value_6 - self.bounds[4])
+    #             g.append(value_7 - self.bounds[5])
+
+    #             gradient = g[0]*line_vector[0] + g[1]*line_vector[1]
+
+    #             L_u = f + self.algo.alpha[0]*g[0] + self.algo.alpha[1]*g[1]
+
+    #             print("-"*50)
+    #             print("time elapsed: "+str(time.time() - self.t_start))
+    #             print("nodes expanded: "+str(len(self.algo.graph.nodes)))
+    #             print("     f: "+str(f))
+    #             print("     g: "+str(g))
+    #             print("     L: "+str(L_u))
+
+
+    #             # cases
+    #             if abs(L_u - L)<0.1**3 and gradient < 0:    ## this should be modified
+    #                 f_minus = f
+    #                 g_minus = g
+    #                 LB = L_u
+    #                 UB = min(f, UB)   ## this should be modified
+    #                 break
+
+    #             elif abs(L_u - L)<0.1**3 and gradient > 0:    ## this should be modified
+    #                 f_plus = f
+    #                 g_plus = g
+    #                 LB = L_u
+    #                 UB = f_minus   ## this should be modified
+    #                 break
+
+    #             elif L_u < L and gradient > 0:
+    #                 f_plus = f
+    #                 g_plus = g
+
+    #             elif L_u < L and gradient < 0:
+    #                 f_minus = f
+    #                 g_minus = g
+    #                 UB = min(UB, f)
+
+    #             elif gradient==0:
+    #                 raise ValueError("opt solution found during phase 1. not implented for this case yet.")
+
+    #             elif L_u > L :
+    #                 print(L_u)
+    #                 print(L)
+    #                 raise ValueError("impossible case. Something must be wrong")
+
+
+    #         k += 1
+
+    #         L_new = L_u
+
+    #         if abs(L_new - L_prev) < 1e-5:
+    #             print(alpha_1_list)
+    #             print(alpha_2_list)
+    #             print(weighted_value_list)
+    #             break
+            
+
+
+
+
+            
+
                     
 
     def compute_alpha_bounds(self, direction, initial_alpha_set):
-        print(direction)
 
         if direction[0]==0:
             return [[self.algo.alpha[0], initial_alpha_set[1][0]],[self.algo.alpha[0], initial_alpha_set[1][1]]]
@@ -1843,7 +2385,13 @@ class CSSPSolver(object):
     def add_anytime_solution(self, f, g):
 
         if type(g)==list:
-            if g[0]<0 and g[1]<0:
+            feasible=True
+            for g_val in g:
+                if g_val>0:
+                    feasible=False
+                    break
+                
+            if feasible==True:
                 if len(self.anytime_solutions)==0:
                     self.anytime_solutions.append((f, time.time() - self.t_start))
 

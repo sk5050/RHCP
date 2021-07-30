@@ -8,7 +8,7 @@ import math
 # import numpy as np
 import time
 
-class ELEVATORModel(object):
+class ELEVATORModel_2011(object):
 
     def __init__(self, n=20, w=1, h=1, prob=0.75, init_state=None, px_dest=None, hidden_dest=None, hidden_origin=None):
 
@@ -22,7 +22,7 @@ class ELEVATORModel(object):
         self.hidden_origin = hidden_origin
         # self.goal = goal
 
-        self.action_list = ["U","D","I","O"]
+        self.action_list = ["OU","OD","C","M"]
 
         
     def actions(self, state):
@@ -132,12 +132,12 @@ class ELEVATORModel(object):
                 new_px_pos.append(px_pos)
                 continue
             elif px_pos==-1:
-                if current_pos==self.px_dest[px_ind] and action=='O':
+                if current_pos==self.px_dest[px_ind] and (action=='OU' or action=='OD'):
                     new_px_pos.append(-2)
                 else:
                     new_px_pos.append(px_pos)
             else:
-                if current_pos==px_pos and action=='I':
+                if current_pos==px_pos and (action=='OU' or action=='OD'):
                     new_px_pos.append(-1)
                 else:
                     new_px_pos.append(px_pos)
@@ -156,12 +156,12 @@ class ELEVATORModel(object):
                 new_hidden_pos.append(hidden_pos)
                 continue
             elif hidden_pos==-1:
-                if current_pos==self.hidden_dest[hidden_ind] and action=='O':
+                if current_pos==self.hidden_dest[hidden_ind] and (action=='OU' or action=='OD'):
                     new_hidden_pos.append(-2)
                 else:
                     new_hidden_pos.append(hidden_pos)
             else:
-                if current_pos==hidden_pos and action=='I':
+                if current_pos==hidden_pos and (action=='OU' or action=='OD'):
                     new_hidden_pos.append(-1)
                 else:
                     new_hidden_pos.append(hidden_pos)

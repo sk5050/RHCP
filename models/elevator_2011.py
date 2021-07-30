@@ -8,7 +8,7 @@ import math
 # import numpy as np
 import time
 
-class ELEVATORModel(object):
+class ELEVATORModel_2011(object):
 
     def __init__(self, n=20, w=1, h=1, prob=0.75, init_state=None, px_dest=None, hidden_dest=None, hidden_origin=None):
 
@@ -22,11 +22,15 @@ class ELEVATORModel(object):
         self.hidden_origin = hidden_origin
         # self.goal = goal
 
-        self.action_list = ["U","D","I","O"]
+        self.action_list = ["OU","OD","C","M"]
 
         
     def actions(self, state):
-        return self.action_list
+
+        if state[4]==1:
+            return ['C']
+        else:
+            return ['OU','OD','M']
 
     
     def is_terminal(self, state):
@@ -124,6 +128,8 @@ class ELEVATORModel(object):
         px_at = state[0]
         hidden_at = state[1]
         current_pos = state[2]
+        current_dir = state[3]
+        is_open = state[4]
 
         new_px_pos = []
         for px_ind in range(self.w):
@@ -132,12 +138,12 @@ class ELEVATORModel(object):
                 new_px_pos.append(px_pos)
                 continue
             elif px_pos==-1:
-                if current_pos==self.px_dest[px_ind] and action=='O':
+                if current_pos==self.px_dest[px_ind] and (action=='OU' or action=='OD'):
                     new_px_pos.append(-2)
                 else:
                     new_px_pos.append(px_pos)
             else:
-                if current_pos==px_pos and action=='I':
+                if current_pos==px_pos and (action=='OU' or action=='OD'):
                     new_px_pos.append(-1)
                 else:
                     new_px_pos.append(px_pos)
@@ -151,30 +157,45 @@ class ELEVATORModel(object):
                 unarrived_hidden_ind_list.append(hidden_ind)
                 new_hidden_pos.append(0)
                 continue
-                
+
             elif hidden_pos==-2:
                 new_hidden_pos.append(hidden_pos)
                 continue
             elif hidden_pos==-1:
-                if current_pos==self.hidden_dest[hidden_ind] and action=='O':
+                if current_pos==self.hidden_dest[hidden_ind] and (action=='OU' or action=='OD'):
                     new_hidden_pos.append(-2)
                 else:
                     new_hidden_pos.append(hidden_pos)
             else:
-                if current_pos==hidden_pos and action=='I':
+                if current_pos==hidden_pos and (action=='OU' or action=='OD'):
                     new_hidden_pos.append(-1)
                 else:
                     new_hidden_pos.append(hidden_pos)
 
 
-        if action=='U':
-            new_pos = min(20, current_pos + 1)
-        elif action=='D':
-            new_pos = max(1, current_pos - 1)
-        elif action=='I' or action=='O':
+        if action=='M':
+            if current_dir==1:
+                new_pos = min(20, current_pos + 1)
+            elif current_dir==-1:
+                new_pos = max(1, current_pos - 1)
+        else:
             new_pos = current_pos
-                    
-        new_states = [[[new_px_pos, new_hidden_pos, new_pos], 1.0]]
+
+        if action=='OU':
+            new_dir = 1
+        elif action=='OD':
+            new_dir = -1
+        else:
+            new_dir = current_dir
+
+        if action=='OU' or action=='OD':
+            new_is_open = 1
+        elif action=='C':
+            new_is_open = 0
+        else:
+            new_is_open = is_open
+
+        new_states = [[[new_px_pos, new_hidden_pos, new_pos, new_dir, new_is_open], 1.0]]
 
         for unarrived_hidden_ind in unarrived_hidden_ind_list:
             new_states_temp = []
@@ -182,10 +203,10 @@ class ELEVATORModel(object):
                 for trans in ['NA', 'A']:
                     new_hidden_pos_temp = new_state[0][1].copy()
                     if trans=='NA':
-                        new_states_temp.append([[new_px_pos, new_hidden_pos_temp, new_pos], new_state[1]*0.25])
+                        new_states_temp.append([[new_px_pos, new_hidden_pos_temp, new_pos,new_dir, new_is_open], new_state[1]*0.25])
                     else:
                         new_hidden_pos_temp[unarrived_hidden_ind] = self.hidden_origin[unarrived_hidden_ind]
-                        new_states_temp.append([[new_px_pos, new_hidden_pos_temp, new_pos], new_state[1]*0.75])
+                        new_states_temp.append([[new_px_pos, new_hidden_pos_temp, new_pos,new_dir,new_is_open], new_state[1]*0.75])
 
             new_states = new_states_temp
                 
@@ -193,9 +214,15 @@ class ELEVATORModel(object):
 
         new_states_in_tuple = []
         for new_state in new_states:
-            new_states_in_tuple.append([(tuple(new_state[0][0]), tuple(new_state[0][1]), new_state[0][2]), new_state[1]])
+            new_states_in_tuple.append([(tuple(new_state[0][0]), tuple(new_state[0][1]), new_state[0][2], new_state[0][3], new_state[0][4]), new_state[1]])
 
   
+
+        # print("----------------")
+        # print(state)
+        # print(action)
+        # print(new_states)
+        # time.sleep(1)
             
         return new_states_in_tuple
     
@@ -253,6 +280,66 @@ class ELEVATORModel(object):
 
     
     def heuristic(self, state,depth=None):
+
+
+        px_pos = state[0]
+        hidden_pos = state[1]
+        elev_pos = state[2]
+
+        px_1_w = 0
+        px_1_t = 0
+        px_2_w = 0
+        px_2_t = 0
+        h_1_w = 0
+        h_1_t = 0
+
+
+        if px_pos[0]>0:
+            px_1_w = abs(elev_pos - px_pos[0])
+
+        if px_pos[0]==-1:
+            px_1_t = abs(self.px_dest[0]-elev_pos)
+        elif px_pos[0]>0:
+            px_1_t = abs(self.px_dest[0]-px_pos[0])
+        elif px_pos[0]==-2:
+            px_1_t = 0
+
+
+        if px_pos[1]>0:
+            px_2_w = abs(elev_pos - px_pos[1])
+
+        if px_pos[1]==-1:
+            px_2_t = abs(self.px_dest[1]-elev_pos)
+        elif px_pos[1]>0:
+            px_2_t = abs(self.px_dest[1]-px_pos[1])
+        elif px_pos[1]==-2:
+            px_2_t = 0
+
+
+        if hidden_pos[0]>0:
+            h_1_w = abs(elev_pos - hidden_pos[0])
+
+        if hidden_pos[0]==-1:
+            h_1_t = abs(self.hidden_dest[0]-elev_pos)
+        elif hidden_pos[0]>0:
+            h_1_t = abs(self.hidden_dest[0]-hidden_pos[0])
+        elif hidden_pos[0]==-2:
+            h_1_t = 0
+
+            
+
+        h_cost = max(px_1_w+px_1_t, px_2_w+px_2_t, h_1_w+h_1_t)
+            
+            
+        
+        return h_cost, px_1_w, px_1_t, px_2_w, px_2_t, h_1_w, h_1_t  #,0,0
+
+
+
+
+
+
+        
         return 0,0,0,0,0,0,0,0,0
 
 

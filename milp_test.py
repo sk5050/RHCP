@@ -21,6 +21,11 @@ from LAO_paper_model import LAOModel
 from manual_model import MANUALModel
 from manual_model_2 import MANUALModel2
 from manual_model_3 import MANUALModel3
+from elevator import ELEVATORModel
+from elevator_2011 import ELEVATORModel_2011
+from elevator_2011_2 import ELEVATORModel_2011_2
+from elevator_2 import ELEVATORModel_2
+from routing_model import ROUTINGModel
 
 # from grid import Grid
 # # import functools
@@ -336,43 +341,151 @@ def test_encoding():
 
 
 
-
-
-def test_LAOStar():
+def test_encoding():
 
     init_state = (0,0)
-    size = (30,30)
+    size = (100,100)
     goal = (4,4)
     model = GRIDModel(size, init_state, goal, prob_right_transition=0.85)
+    bound = 29
 
-    alpha = [0.0]
-    bounds = [1.5]
 
+    # map_file = "models/racetrack1.txt"
+    # traj_check_dict_file = "models/racetrack1_traj_check_dict.json"
+    # init_state = (1,5,0,0)
+    # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
+    # bound = 20
+   
+    solver = MILPSolver(model, bound)
+
+    solver.encode_MILP()
+
+    # bound_list = list(range(30))
+    # for bound in bound_list:
+    #     solver.bound = bound
+    #     solver.encode_MILP()
+
+
+
+
+
+def test_elevator():
 
     
-    algo = ILAOStar(model,constrained=True,VI_epsilon=1e-1, convergence_epsilon=1e-100,\
-                   bounds=bounds,alpha=alpha,Lagrangian=True)
+    # model = ELEVATORModel(n=20, w=2, h=2, prob=0.75, init_state=((4,17),(0,0),7), px_dest=(10,9), hidden_dest=(19,2), hidden_origin=(5,16))
+    model = ELEVATORModel(n=20, w=2, h=2, prob=0.75, init_state=((random.randint(1,20),random.randint(1,20)),(0,0),random.randint(1,20)), px_dest=(random.randint(1,20),random.randint(1,20)), hidden_dest=(random.randint(1,20),random.randint(1,20)), hidden_origin=(random.randint(1,20),random.randint(1,20)))
 
-    
+
+    bounds = [30,30,30,30,30,30,15,21]
+
+
+    solver = MILPSolver(model, bounds)
+
 
     t = time.time()
-    policy = algo.solve()
+    solver.solve_opt_MILP()
     print("elapsed time: "+str(time.time()-t))
-    print("number of states explored: "+str(len(algo.graph.nodes)))
+    print("number of states explored: "+str(len(solver.algo.graph.nodes)))
 
     
 
-    cssp_solver = CSSPSolver(model,bounds=[0.5])
+
+def test_elevator_2011():
+
+    # model = ELEVATORModel_2011_2(n=20, w=2, h=2, prob=0.75, init_state=((4,17),(0,0),7,1), px_dest=(10,9), hidden_dest=(19,2), hidden_origin=(5,16))
+
+    # model = ELEVATORModel_2011_2(n=20, w=2, h=1, prob=0.75, init_state=((random.randint(1,20),random.randint(1,20)),(0,),random.randint(1,20), 0), px_dest=(random.randint(1,20),random.randint(1,20)), hidden_dest=(random.randint(1,20),), hidden_origin=(random.randint(1,20),))
 
 
-    model.print_policy(policy)
+    init_state = ((11, 11), (0,), 15, 0)
+    px_dest = (1, 8)
+    hidden_dest = (19,)
+    hidden_origin = (7,)
+
+    init_state = ((17, 5), (0,), 11, 0)
+    px_dest = (17, 9)
+    hidden_dest = (15,)
+    hidden_origin = (15,) 
+
+    model = ELEVATORModel_2011_2(n=20, w=2, h=1, prob=0.75,
+                                 init_state=init_state,
+                                 px_dest=px_dest,
+                                 hidden_dest=hidden_dest,
+                                 hidden_origin=hidden_origin)
+
+    bounds = [30,30,30,30,15,21]
+
+
+    solver = MILPSolver(model, bounds)
+
+
+    t = time.time()
+    solver.solve_opt_MILP()
+    print("elapsed time: "+str(time.time()-t))
+    print("number of states explored: "+str(len(solver.algo.graph.nodes)))
+
+
+
+
+
+def test_elevator_2011_two_consts():
+
+    # model = ELEVATORModel_2011_2(n=20, w=2, h=2, prob=0.75, init_state=((4,17),(0,0),7,1), px_dest=(10,9), hidden_dest=(19,2), hidden_origin=(5,16))
+
+    # model = ELEVATORModel_2011_2(n=20, w=2, h=1, prob=0.75, init_state=((random.randint(1,20),random.randint(1,20)),(0,),random.randint(1,20), 0), px_dest=(random.randint(1,20),random.randint(1,20)), hidden_dest=(random.randint(1,20),), hidden_origin=(random.randint(1,20),))
+
+
+    init_state = ((11, 11), (0,), 15, 0)
+    px_dest = (1, 8)
+    hidden_dest = (19,)
+    hidden_origin = (7,)
+
+    init_state = ((9, 10), (0,), 1, 0)
+    px_dest = (2, 19)
+    hidden_dest = (17,)
+    hidden_origin = (16,) 
+
+    model = ELEVATORModel_2011_2(n=20, w=2, h=1, prob=0.75,
+                                 init_state=init_state,
+                                 px_dest=px_dest,
+                                 hidden_dest=hidden_dest,
+                                 hidden_origin=hidden_origin)
+
+    bounds = [15,21]
+
+
+    solver = MILPSolver(model, bounds)
+
+
+    t = time.time()
+    solver.solve_opt_MILP()
+    print("elapsed time: "+str(time.time()-t))
+    print("number of states explored: "+str(len(solver.algo.graph.nodes)))
 
     
-    value_1 = algo.graph.root.value_1
-    print(value_1)
+    
 
 
+def test_elevator_2():
 
+    # model = ELEVATORModel_2011_2(n=20, w=2, h=2, prob=0.75, init_state=((4,17),(0,0),7,1), px_dest=(10,9), hidden_dest=(19,2), hidden_origin=(5,16))
+
+    model = ELEVATORModel_2(n=20, w=2, h=1, prob=0.75, init_state=((random.randint(1,20),random.randint(1,20)),(0,),(random.randint(1,20), 0), (random.randint(1,20),0)), \
+                                 px_dest=(random.randint(1,20),random.randint(1,20)), \
+                                 hidden_dest=(random.randint(1,20),), \
+                                 hidden_origin=(random.randint(1,20),))
+
+    bounds = [30,30,30,30,15,21]
+
+
+    solver = MILPSolver(model, bounds)
+
+
+    t = time.time()
+    solver.solve_opt_MILP()
+    print("elapsed time: "+str(time.time()-t))
+    print("number of states explored: "+str(len(solver.algo.graph.nodes)))
+    
 
 
 def test_idual():
@@ -388,7 +501,7 @@ def test_idual():
     # model = RaceTrackModel(map_file, init_state=init_state, traj_check_dict_file=traj_check_dict_file, slip_prob=0.1)
 
 
-    bound = 1
+    bound = [1]
 
     t = time.time()
     solver = IDUAL(model, bound)
@@ -402,6 +515,50 @@ def test_idual():
     print("elapsed time: "+str(time.time() - t))
 
 
+
+
+
+
+
+
+def test_routing():
+
+
+    init_state = ((0,0),(5,5))
+    size = (10,10)
+    goal = (9,9)
+    model = ROUTINGModel(size, init_state, goal, prob_right_transition=0.8)
+
+    bounds = [1] 
+
+    solver = MILPSolver(model, bounds)
+
+
+    t = time.time()
+    solver.solve_opt_MILP()
+    print("elapsed time: "+str(time.time()-t))
+    print("number of states explored: "+str(len(solver.algo.graph.nodes)))
+
+
+
+
+def test_routing_IDUAL():
+
+
+    init_state = ((0,0),(5,5))
+    size = (10,10)
+    goal = (9,9)
+    model = ROUTINGModel(size, init_state, goal, prob_right_transition=0.8)
+
+    bounds = [1] 
+
+
+    t = time.time()
+    solver = IDUAL(model, bounds)
+    solver.solve()
+
+    print("elapsed time: "+str(time.time()-t))
+    print("number of states explored: "+str(len(solver.algo.graph.nodes)))
     
 
     
@@ -413,9 +570,18 @@ def test_idual():
 # test_racetrack_easy()
 # test_racetrack_simple()
 
-test_idual()
+# test_idual()
 
 # test_racetrack_hard_full_expansion()
 
 
 # test_grid()
+
+# test_elevator()
+
+# test_elevator_2011()
+# test_elevator_2()
+
+# test_elevator_2011_two_consts()
+# test_routing()
+test_routing_IDUAL()

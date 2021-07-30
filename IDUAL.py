@@ -46,6 +46,27 @@ class IDUAL(object):
 
 
 
+    def solve_LP(self):
+
+        S_hat = set([self.graph.root])
+        F = set([self.graph.root])
+        F_R = set([self.graph.root])
+        F = set()
+        G_hat = set()
+        G = set() # this is a set for explored goals, i.e., S_hat.intersection(a set of all goals of the problem)
+
+        while len(F_R)>0:
+
+            N, G = self.F_R_expansion(F_R, G)   ## F_R_expansion not only expands fringe states, but also add explored goals to G. 
+            # S_hat = S_hat.union(N)         ## we don't need S_hat explicitly, because S_hat=self.graph.nodes
+            F_term_1 = F.difference(F_R)
+            F_term_2 = N.difference(G)
+            F = F_term_1.union(F_term_2)
+            G_hat = F.union(G)
+            F_R = self.solve_opt_LP(G_hat, F)            
+
+            
+
 
     def solve_LP_and_MILP(self):
 
@@ -243,7 +264,7 @@ class IDUAL(object):
         m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
                                 for state in state_list for action in self.model.actions(state)) + \
                     gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
-                    <= self.bound)
+                    <= self.bound[0])
 
 
         for state in state_list:
@@ -421,10 +442,11 @@ class IDUAL(object):
             1 == gp.quicksum(in_var_dict[goal] for goal in goal_list))
 
 
+        
         m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
                                 for state in state_list for action in self.model.actions(state)) + \
                     gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
-                    <= self.bound)
+                    <= self.bound[0])
 
 
         # for state in state_list:

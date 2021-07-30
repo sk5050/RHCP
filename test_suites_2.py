@@ -18,6 +18,7 @@ from LAO_paper_model import LAOModel
 from manual_model import MANUALModel
 from manual_model_2 import MANUALModel2
 from manual_model_3 import MANUALModel3
+from routing_model import ROUTINGModel
 
 # from grid import Grid
 # # import functools
@@ -985,6 +986,65 @@ def test_dual_alg_racetrack1():
     print(cssp_solver.anytime_solutions)
 
 
+
+
+
+
+
+def test_dual_alg_routing():
+
+
+    init_state = ((0,0),(5,5))
+    size = (10,10)
+    goal = (9,9)
+    model = ROUTINGModel(size, init_state, goal, prob_right_transition=0.8)
+
+    bound = 1 
+
+
+
+    cssp_solver = CSSPSolver(model, bounds=[bound],VI_epsilon=1e-1,convergence_epsilon=1e-10)
+
+    t = time.time()
+
+    cssp_solver.solve([[0,10.0]])
+
+    # policy = cssp_solver.algo.extract_policy()
+
+    # cssp_solver.candidate_pruning = True
+
+    # try:
+    #     cssp_solver.incremental_update(2)
+    # except:
+
+    #     k_best_solution_set = cssp_solver.k_best_solution_set
+    #     for solution in k_best_solution_set:
+    #         print("-"*20)
+    #         print(solution[0])
+    #         print(solution[1])
+
+    #     print(time.time() - t)
+
+    #     print(cssp_solver.anytime_solutions)
+
+
+    # k_best_solution_set = cssp_solver.k_best_solution_set
+    # for solution in k_best_solution_set:
+    #     print("-"*20)
+    #     print(solution[0])
+    #     print(solution[1])
+
+    print(time.time() - t)
+
+    print(cssp_solver.anytime_solutions)
+
+
+
+
+
+    
+
+
 def test_dual_alg_multiple_bounds():
 
     init_state = (0,0)
@@ -1756,7 +1816,7 @@ def test_pruning_rule_2():
 
 # test_LAOStar_racetrack()
 # draw_lower_envelop_racetrack()
-test_dual_alg_racetrack()
+# test_dual_alg_racetrack()
 # test_dual_alg_racetrack1()
 
 # test_manual_model()
@@ -1786,8 +1846,8 @@ test_dual_alg_racetrack()
 # test_subgradient()
 
 
-
-
+# test_dual_alg_racetrack()
+test_dual_alg_routing()
 
 
 
