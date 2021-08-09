@@ -37,6 +37,7 @@ class MILPSolver(object):
                 self.state_list.append(state)
 
 
+
     def encode_MILP(self):
 
         m = gp.Model("CSSP")
@@ -139,9 +140,9 @@ class MILPSolver(object):
                         ), name='const')
 
 
-        m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
+        m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action,0) \
                                 for state in self.state_list for action in self.model.actions(state)) \
-                    <= self.bound)
+                    <= self.bound[0])
 
 
 
@@ -201,7 +202,6 @@ class MILPSolver(object):
 
         X = 100000
 
-
         ## Add variables
         state_var_dict = dict()
         goal_var_dict = dict()
@@ -222,22 +222,6 @@ class MILPSolver(object):
                 dict_temp[action] = m.addVar(lb=0, name=str((goal,action)))
 
             goal_var_dict[goal] = dict_temp
-
-
-
-        # for state in self.state_list:
-        #     dict_temp = dict()
-        #     for action in self.model.actions(state):
-        #         dict_temp[action] = m.addVar(vtype=GRB.BINARY)
-
-        #     delta_state_var_dict[state] = dict_temp
-
-        # for goal in self.goal_list:
-        #     dict_temp = dict()
-        #     for action in self.model.actions(goal):
-        #         dict_temp[action] = m.addVar(vtype=GRB.BINARY)
-
-        #     delta_goal_var_dict[goal] = dict_temp
 
 
 
@@ -262,6 +246,8 @@ class MILPSolver(object):
                         )
 
 
+            
+
             out_var = out_var_dict[state]
             var_dict = state_var_dict[state]
             m.addConstr(out_var == \
@@ -277,7 +263,7 @@ class MILPSolver(object):
                                 for parent_node in self.algo.graph.nodes[goal].parents_set for action_ in self.model.actions(parent_node.state))
                         )
 
-            
+
                 
 
         for state in self.state_list:
@@ -292,7 +278,14 @@ class MILPSolver(object):
             
 
         m.addConstr(
-            1 == gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+            0.9 <= gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+
+        m.addConstr(
+            1.1 >= gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+
+        # m.addConstr(
+        #     1 == gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+
 
 
 
@@ -304,30 +297,6 @@ class MILPSolver(object):
                         <= self.bound[i])
 
 
-        # for state in self.state_list:
-        #     m.addConstr(
-        #         gp.quicksum(delta_state_var_dict[state][action] for action in self.model.actions(state))
-        #         <= 1)
-
-        # for goal in self.goal_list:
-        #     m.addConstr(
-        #         gp.quicksum(delta_goal_var_dict[goal][action] for action in self.model.actions(goal))
-        #         <= 1)
-
-
-        # for state in self.state_list:
-        #     for action in self.model.actions(state):
-        #         m.addConstr(
-        #             state_var_dict[state][action] / X <= delta_state_var_dict[state][action])
-
-        # for goal in self.goal_list:
-        #     for action in self.model.actions(goal):
-        #         m.addConstr(
-        #             goal_var_dict[goal][action] / X <= delta_goal_var_dict[goal][action])
-
-
-        
-
 
 
         ## Add objective
@@ -338,6 +307,7 @@ class MILPSolver(object):
 
         m.modelSense = GRB.MINIMIZE
         m.update()
+        # m.setParam('method', 1)
         m.optimize()
 
         print('Obj: %g' % m.objVal)
@@ -445,8 +415,15 @@ class MILPSolver(object):
                     out_var_dict[state] == in_var_dict[state])
             
 
+        # m.addConstr(
+        #     1 == gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+
         m.addConstr(
-            1 == gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+            0.9 <= gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+
+        m.addConstr(
+            1.1 >= gp.quicksum(in_var_dict[goal] for goal in self.goal_list))
+
 
 
         # m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
@@ -486,7 +463,12 @@ class MILPSolver(object):
 
         
 
+        # m.setObjective(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action,0) \
+        #                         for state in self.state_list for action in self.model.actions(state))
+        #                 )
 
+
+                
 
         ## Add objective
 
@@ -512,7 +494,7 @@ class MILPSolver(object):
     def prob(self, from_state, to_state, action):
 
         new_states = self.model.state_transitions(from_state, action)
-
+        
         for new_state in new_states:
             if new_state[0]==to_state:
                 return new_state[1]

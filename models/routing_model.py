@@ -52,7 +52,7 @@ class ROUTINGModel(object):
                 new_ac_state = ac_state
 
         elif action=="R":
-            new_ac_state = (ac_state[0]+1, ac_state[1]+1)
+            new_ac_state = (ac_state[0]+1, ac_state[1])
             if new_ac_state not in self.state_list:
                 new_ac_state = ac_state
 
@@ -84,7 +84,7 @@ class ROUTINGModel(object):
         cost1 = 1.0
 
 
-        if abs(state[0][0]-state[1][0]) <= 3 and abs(state[0][1]-state[1][1]) <= 3:
+        if abs(state[0][0]-state[1][0]) <= 1 and abs(state[0][1]-state[1][1]) <= 1:
             cost2 = 1.0
         else:
             cost2 = 0.0

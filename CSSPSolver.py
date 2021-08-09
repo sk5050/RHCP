@@ -547,6 +547,10 @@ class CSSPSolver(object):
         value_6 = self.algo.graph.root.value_6
         value_7 = self.algo.graph.root.value_7
 
+        value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8, value_9)
+        self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
+
         f_plus = value_1
         g_plus = list()
         g_plus.append(value_2 - self.bounds[0])
@@ -579,6 +583,12 @@ class CSSPSolver(object):
         value_5 = self.algo.graph.root.value_5
         value_6 = self.algo.graph.root.value_6
         value_7 = self.algo.graph.root.value_7
+
+        value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+        weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8, value_9)
+
+        del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
+        self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
 
         f_minus = value_1
         g_minus = list()
@@ -614,7 +624,7 @@ class CSSPSolver(object):
 
                 # zero case for this coordinate
                 self.algo.alpha[bound_idx] = initial_alpha_set[bound_idx][0]
-                self.resolve_LAOStar()
+                policy = self.resolve_LAOStar()
 
 
 
@@ -649,7 +659,7 @@ class CSSPSolver(object):
 
                 # infinite case for this coordinate
                 self.algo.alpha[bound_idx] = initial_alpha_set[bound_idx][1]
-                self.resolve_LAOStar()
+                policy = self.resolve_LAOStar()
 
                 value_1 = self.algo.graph.root.value_1
                 value_2 = self.algo.graph.root.value_2
@@ -708,7 +718,7 @@ class CSSPSolver(object):
                     UB = float('inf')
 
 
-                    self.resolve_LAOStar()
+                    policy = self.resolve_LAOStar()
 
                     value_1 = self.algo.graph.root.value_1
                     value_2 = self.algo.graph.root.value_2
@@ -764,6 +774,12 @@ class CSSPSolver(object):
                         raise ValueError("impossible case. Something must be wrong")
 
 
+                value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8,value_9 = self.algo.get_values(self.algo.graph.root)
+                weighted_value = self.algo.compute_weighted_value(value_1,value_2,value_3,value_4,value_5,value_6,value_7,value_8, value_9)
+
+                del self.k_best_solution_set[0]   ## to keep only two solutions at the end. 
+                self.k_best_solution_set.append((weighted_value, (value_1,value_2,value_3), policy))
+
                 print("-"*50)
                 print("time elapsed: "+str(time.time() - self.t_start))
                 print("nodes expanded: "+str(len(self.algo.graph.nodes)))
@@ -775,17 +791,19 @@ class CSSPSolver(object):
                 k += 1
 
 
+                if k==7:
+                    return True
 
                 ## optimality check for this entire envelop    
 
                 L_new = L_u
 
-                if abs(L_new - L_prev) < 0.1**5:
-                    print("dual optima with the following values:")
-                    print(" alpha:"+str(self.algo.alpha))
-                    print("     L: "+str(L))
-                    print("     f: "+str(f))
-                    print("     g: "+str(g))
+                # if abs(L_new - L_prev) < 0.1**5:
+                #     print("dual optima with the following values:")
+                #     print(" alpha:"+str(self.algo.alpha))
+                #     print("     L: "+str(L))
+                #     print("     f: "+str(f))
+                #     print("     g: "+str(g))
 
                     # return True
 
@@ -1384,7 +1402,7 @@ class CSSPSolver(object):
 
             # t = 0
 
-            candidate_generating_states = self.prune_candidates(current_best_policy)
+            candidate_generating_states = self.prune_candidates_only_batch(current_best_policy)
 
             for state,head,blocked_action_set in candidate_generating_states:
 
@@ -1659,7 +1677,25 @@ class CSSPSolver(object):
 
     def prune_candidates(self, current_best_policy):
 
+        # Feasible = True
+
+        # g = []
+        # g.append(self.algo.graph.root.value_2 - self.bounds[0])
+        # g.append(self.algo.graph.root.value_3 - self.bounds[1])
+        # g.append(self.algo.graph.root.value_4 - self.bounds[2])
+        # g.append(self.algo.graph.root.value_5 - self.bounds[3])
+        # g.append(self.algo.graph.root.value_6 - self.bounds[4])
+        # g.append(self.algo.graph.root.value_7 - self.bounds[5])
+
+        # for g_elem in g:
+        #     if g_elem>0:
+        #         Feasible = False
+        #         break
+
         
+
+        
+        # if self.candidate_pruning==False or Feasible==False:
         if self.candidate_pruning==False:
             candidate_generating_states = []
             for state, action in current_best_policy.items():
@@ -1799,6 +1835,7 @@ class CSSPSolver(object):
 
             sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
 
+
             initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
 
             for pruned_state in initial_pruned_states:
@@ -1869,6 +1906,473 @@ class CSSPSolver(object):
                         head = self.get_head(node)
                         blocked_action_set = self.get_blocked_action_set(node,head)
                         candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+
+
+
+
+    def prune_candidates_without_batch(self, current_best_policy):
+
+        # Feasible = True
+
+        # g = []
+        # g.append(self.algo.graph.root.value_2 - self.bounds[0])
+        # g.append(self.algo.graph.root.value_3 - self.bounds[1])
+        # g.append(self.algo.graph.root.value_4 - self.bounds[2])
+        # g.append(self.algo.graph.root.value_5 - self.bounds[3])
+        # g.append(self.algo.graph.root.value_6 - self.bounds[4])
+        # g.append(self.algo.graph.root.value_7 - self.bounds[5])
+
+        # for g_elem in g:
+        #     if g_elem>0:
+        #         Feasible = False
+        #         break
+
+        
+
+        
+        # if self.candidate_pruning==False or Feasible==False:
+        if self.candidate_pruning==False:
+            candidate_generating_states = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+
+                    node = self.algo.graph.nodes[state]
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    
+                    candidate_generating_states.append((state,head,blocked_action_set))
+
+            return candidate_generating_states
+        
+        
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
+
+            epsilon = 0.01
+            initial_epsilon = 1e-10
+
+            policy_value = self.algo.graph.root.value_1
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+            R = np.ones(num_states)    ## TODO: need to be changed. Now it assumes unit cost.
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = []
+            prev_value = policy_value
+
+            # initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            # for pruned_state in initial_pruned_states:
+            #     state = pruned_state[0]
+            #     idx = pruned_state[1]
+            #     Q[idx,:] = np.zeros(num_states)
+            #     R[idx] = 0
+
+            # N_new = np.linalg.inv(I - Q)
+            # # V = np.dot(N_new, R)
+            # # new_value = V[root_idx]
+
+            # new_value = np.dot(N_new[root_idx,:], R)
+
+
+            # epsilon -= (policy_value - new_value) / policy_value
+
+            # prev_value = new_value
+
+            # if epsilon < 0:
+            #     raise ValueError("initial pruning was too aggressive!")
+            # else:
+            #     N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    u = np.zeros(num_states)
+                    u[idx] = 1
+                    v = Q[idx,:]
+                    N_new = self.SM_update(N,u,v)
+                    R[idx] = 0
+                    # V = np.dot(N_new, R)
+                    # new_value = V[root_idx]
+
+                    new_value = np.dot(N_new[root_idx,:], R)
+
+
+                    if prev_value < new_value:
+                        if abs(prev_value - new_value) > 1e-8:
+                            # print(prev_value)
+                            # print(new_value)
+                            # raise ValueError("something went wrong.")
+
+                            R[idx] = 1
+                            head = self.get_head(node)
+                            blocked_action_set = self.get_blocked_action_set(node,head)
+                            candidate_generating_states.append((state, head, blocked_action_set))
+
+                    elif (prev_value - new_value) / policy_value < epsilon:
+                        ## can be pruned
+                        N = N_new
+                        epsilon -= (prev_value - new_value) / policy_value
+                        head = self.get_head(node)
+                        accumulated_head = accumulated_head.intersection(head)
+                        prev_value = new_value
+                        pruned_states.append(state)
+
+                    else:
+                        ## cannot be pruned
+                        R[idx] = 1
+                        head = self.get_head(node)
+                        blocked_action_set = self.get_blocked_action_set(node,head)
+                        candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+
+        
+
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+
+            policy_value = self.algo.graph.root.value_2
+            
+            epsilon = policy_value - self.bounds[0]
+            initial_epsilon = 1e-10
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+
+            R = self.compute_R(state_list)
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = []
+            prev_value = policy_value
+
+            # initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            # for pruned_state in initial_pruned_states:
+            #     state = pruned_state[0]
+            #     idx = pruned_state[1]
+            #     Q[idx,:] = np.zeros(num_states)
+            #     R[idx] = 0
+
+            # N_new = np.linalg.inv(I - Q)
+            # new_value = np.dot(N_new[root_idx,:], R)
+
+
+            # epsilon -= (policy_value - new_value)
+
+            # prev_value = new_value
+
+            # if epsilon < 0:
+            #     raise ValueError("initial pruning was too aggressive!")
+            # else:
+            #     N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    u = np.zeros(num_states)
+                    u[idx] = 1
+                    v = Q[idx,:]
+                    N_new = self.SM_update(N,u,v)
+                    R_prev = R[idx]
+                    R[idx] = 0
+                    # V = np.dot(N_new, R)
+                    # new_value = V[root_idx]
+
+                    new_value = np.dot(N_new[root_idx,:], R)
+
+                    if prev_value < new_value:
+                        if abs(prev_value - new_value) > 1e-8:
+                            print(prev_value)
+                            print(new_value)
+                            raise ValueError("something went wrong.")
+
+                    elif (prev_value - new_value) < epsilon:
+                        ## can be pruned
+                        N = N_new
+                        epsilon -= (prev_value - new_value)
+                        head = self.get_head(node)
+                        accumulated_head = accumulated_head.intersection(head)
+                        prev_value = new_value
+                        pruned_states.append(state)
+
+                    else:
+                        ## cannot be pruned
+                        R[idx] = R_prev
+                        head = self.get_head(node)
+                        blocked_action_set = self.get_blocked_action_set(node,head)
+                        candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+        
+
+
+    def prune_candidates_only_batch(self, current_best_policy):
+
+        if self.candidate_pruning==False or (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+            candidate_generating_states = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+
+                    node = self.algo.graph.nodes[state]
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    
+                    candidate_generating_states.append((state,head,blocked_action_set))
+
+            return candidate_generating_states
+        
+        
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) <= 0:
+
+            epsilon = 0.01
+            initial_epsilon = 1e-4
+
+            policy_value = self.algo.graph.root.value_1
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+            R = np.ones(num_states)    ## TODO: need to be changed. Now it assumes unit cost.
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            for pruned_state in initial_pruned_states:
+                state = pruned_state[0]
+                idx = pruned_state[1]
+                Q[idx,:] = np.zeros(num_states)
+                R[idx] = 0
+
+            N_new = np.linalg.inv(I - Q)
+            # V = np.dot(N_new, R)
+            # new_value = V[root_idx]
+
+            new_value = np.dot(N_new[root_idx,:], R)
+
+
+            epsilon -= (policy_value - new_value) / policy_value
+
+            prev_value = new_value
+
+            if epsilon < 0:
+                raise ValueError("initial pruning was too aggressive!")
+            else:
+                N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            # sorted_states.reverse()
+            
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    # u = np.zeros(num_states)
+                    # u[idx] = 1
+                    # v = Q[idx,:]
+                    # N_new = self.SM_update(N,u,v)
+                    # R[idx] = 0
+                    # # V = np.dot(N_new, R)
+                    # # new_value = V[root_idx]
+
+                    # new_value = np.dot(N_new[root_idx,:], R)
+
+
+                    # if prev_value < new_value:
+                    #     if abs(prev_value - new_value) > 1e-8:
+                    #         print(prev_value)
+                    #         print(new_value)
+                    #         raise ValueError("something went wrong.")
+
+                    # elif (prev_value - new_value) / policy_value < epsilon:
+                    #     ## can be pruned
+                    #     N = N_new
+                    #     epsilon -= (prev_value - new_value) / policy_value
+                    #     head = self.get_head(node)
+                    #     accumulated_head = accumulated_head.intersection(head)
+                    #     prev_value = new_value
+                    #     pruned_states.append(state)
+
+                    # else:
+                    #     ## cannot be pruned
+                    R[idx] = 1
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    candidate_generating_states.append((state, head, blocked_action_set))
+
+            return candidate_generating_states
+
+        
+
+        elif (self.algo.graph.root.value_2 - self.bounds[0]) > 0:
+
+            policy_value = self.algo.graph.root.value_2
+            
+            epsilon = policy_value - self.bounds[0]
+            initial_epsilon = 1e-4
+
+            state_list = []
+            for state, action in current_best_policy.items():
+                if action != 'Terminal':
+                    state_list.append(state)
+
+
+            num_states = len(state_list)
+
+            Q,root_idx,state_idx_dict = self.compute_transition_matrix(state_list)
+            I = np.identity(num_states)
+            N = np.linalg.inv(I - Q)
+            N_vector = N[root_idx]
+
+            R = self.compute_R(state_list)
+
+            sorted_states = [state for _, state in sorted(zip(N_vector, state_list))]
+
+            initial_pruned_states = [(state,state_idx_dict[state]) for state in sorted_states if N_vector[state_idx_dict[state]]<initial_epsilon]
+
+            for pruned_state in initial_pruned_states:
+                state = pruned_state[0]
+                idx = pruned_state[1]
+                Q[idx,:] = np.zeros(num_states)
+                R[idx] = 0
+
+            N_new = np.linalg.inv(I - Q)
+            new_value = np.dot(N_new[root_idx,:], R)
+
+
+            epsilon -= (policy_value - new_value)
+
+            prev_value = new_value
+
+            if epsilon < 0:
+                raise ValueError("initial pruning was too aggressive!")
+            else:
+                N = N_new
+
+
+            candidate_generating_states = []
+            accumulated_head = set(self.algo.graph.nodes.values())
+            pruned_states = []
+
+            sorted_states.reverse()
+
+            for state in sorted_states:
+                idx = state_idx_dict[state]
+
+                if (state,idx) in initial_pruned_states:
+                    continue
+
+                node = self.algo.graph.nodes[state]
+
+                if node not in accumulated_head:
+                    continue
+
+                else:
+                    # u = np.zeros(num_states)
+                    # u[idx] = 1
+                    # v = Q[idx,:]
+                    # N_new = self.SM_update(N,u,v)
+                    # R_prev = R[idx]
+                    # R[idx] = 0
+                    # # V = np.dot(N_new, R)
+                    # # new_value = V[root_idx]
+
+                    # new_value = np.dot(N_new[root_idx,:], R)
+
+                    # if prev_value < new_value:
+                    #     if abs(prev_value - new_value) > 1e-8:
+                    #         print(prev_value)
+                    #         print(new_value)
+                    #         raise ValueError("something went wrong.")
+
+                    # elif (prev_value - new_value) < epsilon:
+                    #     ## can be pruned
+                    #     N = N_new
+                    #     epsilon -= (prev_value - new_value)
+                    #     head = self.get_head(node)
+                    #     accumulated_head = accumulated_head.intersection(head)
+                    #     prev_value = new_value
+                    #     pruned_states.append(state)
+
+                    # else:
+                    #     ## cannot be pruned
+                    # R[idx] = R_prev
+                    head = self.get_head(node)
+                    blocked_action_set = self.get_blocked_action_set(node,head)
+                    candidate_generating_states.append((state, head, blocked_action_set))
 
             return candidate_generating_states
 
@@ -2394,21 +2898,57 @@ class CSSPSolver(object):
             if feasible==True:
                 if len(self.anytime_solutions)==0:
                     self.anytime_solutions.append((f, time.time() - self.t_start))
+                    print("@@@@@@@@@@@@@@@@@@@@@@@@")
+                    print(self.anytime_solutions)
+                    print(len(self.algo.graph.nodes))
 
                 else:
 
                     if self.anytime_solutions[-1][0] > f:
                         self.anytime_solutions.append((f, time.time() - self.t_start))
+                        print("@@@@@@@@@@@@@@@@@@@@@@@@")
+                        print(self.anytime_solutions)
+                        print(len(self.algo.graph.nodes))
 
         else:
             if g<0:
                 if len(self.anytime_solutions)==0:
                     self.anytime_solutions.append((f, time.time() - self.t_start))
+                    print("@@@@@@@@@@@@@@@@@@@@@@@@")
+                    print(self.anytime_solutions)
+                    print(len(self.algo.graph.nodes))
 
                 else:
 
                     if self.anytime_solutions[-1][0] > f:
                         self.anytime_solutions.append((f, time.time() - self.t_start))
+                        print("@@@@@@@@@@@@@@@@@@@@@@@@")
+                        print(self.anytime_solutions)
+                        print(len(self.algo.graph.nodes))
+
+
+
+
+    def is_feasible(self, f, g):
+
+        if type(g)==list:
+            feasible=True
+            for g_val in g:
+                if g_val>0:
+                    feasible=False
+                    break
+                
+            if feasible==True:
+                return True
+            else:
+                return False
+
+        else:
+            if g<=0:
+                return True
+
+            else:
+                return False
 
 
 

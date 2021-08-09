@@ -161,13 +161,17 @@ class RaceTrackModel(object):
 
     
     def heuristic(self, state,depth=None):
-        if self.heuristic_dict == None:
-            heuristic1 = 0
-        else:
-            # if str(state) in self.heuristic_dict:
-            heuristic1 = self.heuristic_dict[str(state)] - 1
-            # else:
-            # heuristic1 = 0
+
+        heuristic1 = 0
+
+        
+        # if self.heuristic_dict == None:
+        #     heuristic1 = 0
+        # else:
+        #     # if str(state) in self.heuristic_dict:
+        #     heuristic1 = self.heuristic_dict[str(state)] - 1
+        #     # else:
+        #     # heuristic1 = 0
         
         heuristic2 = 0
         return heuristic1, heuristic2

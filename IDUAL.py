@@ -77,6 +77,7 @@ class IDUAL(object):
         G_hat = set()
         G = set() # this is a set for explored goals, i.e., S_hat.intersection(a set of all goals of the problem)
 
+        t = time.time()
         while len(F_R)>0:
 
             N, G = self.F_R_expansion(F_R, G)   ## F_R_expansion not only expands fringe states, but also add explored goals to G. 
@@ -86,20 +87,50 @@ class IDUAL(object):
             F = F_term_1.union(F_term_2)
             G_hat = F.union(G)
             F_R = self.solve_opt_LP(G_hat, F)
+
+            print("-"*50)
+            print(len(self.graph.nodes))
+            print("elapsed time: "+str(time.time()-t))
+            print("-"*50)
             
 
-        # F_R = self.solve_opt(G_hat, F)
+        print("-"*50)
+        print("-"*50)
+        print("-"*50)
+        print("LP finished")
+        print("elapsed time: "+str(time.time()-t))
+        print("number of states explored: "+str(len(self.graph.nodes)))
+        print("-"*50)
+        print("-"*50)
+        print("-"*50)
+        
+        F_R = self.solve_opt(G_hat, F)
 
-        # while len(F_R)>0:
+        while len(F_R)>0:
 
-        #     N, G = self.F_R_expansion(F_R, G)   ## F_R_expansion not only expands fringe states, but also add explored goals to G. 
-        #     # S_hat = S_hat.union(N)         ## we don't need S_hat explicitly, because S_hat=self.graph.nodes
-        #     F_term_1 = F.difference(F_R)
-        #     F_term_2 = N.difference(G)
-        #     F = F_term_1.union(F_term_2)
-        #     G_hat = F.union(G)
-        #     F_R = self.solve_opt(G_hat, F)
+            N, G = self.F_R_expansion(F_R, G)   ## F_R_expansion not only expands fringe states, but also add explored goals to G. 
+            # S_hat = S_hat.union(N)         ## we don't need S_hat explicitly, because S_hat=self.graph.nodes
+            F_term_1 = F.difference(F_R)
+            F_term_2 = N.difference(G)
+            F = F_term_1.union(F_term_2)
+            G_hat = F.union(G)
+            F_R = self.solve_opt(G_hat, F)
 
+            print("-"*50)
+            print(len(self.graph.nodes))
+            print("elapsed time: "+str(time.time()-t))
+            print("-"*50)
+
+
+        print("-"*50)
+        print("-"*50)
+        print("-"*50)
+        print("MILP finished")
+        print("elapsed time: "+str(time.time()-t))
+        print("number of states explored: "+str(len(self.graph.nodes)))
+        print("-"*50)
+        print("-"*50)
+        print("-"*50)
 
 
 
@@ -257,14 +288,28 @@ class IDUAL(object):
                     out_var_dict[state] == in_var_dict[state])
             
 
+        # m.addConstr(
+        #     1 == gp.quicksum(in_var_dict[goal] for goal in goal_list))
+
         m.addConstr(
-            1 == gp.quicksum(in_var_dict[goal] for goal in goal_list))
+            0.9 <= gp.quicksum(in_var_dict[goal] for goal in goal_list))
+
+        m.addConstr(
+            1.1 >= gp.quicksum(in_var_dict[goal] for goal in goal_list))
 
 
-        m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
-                                for state in state_list for action in self.model.actions(state)) + \
-                    gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
-                    <= self.bound[0])
+        # m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
+        #                         for state in state_list for action in self.model.actions(state)) + \
+        #             gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
+        #             <= self.bound[0])
+
+
+        for i in range(len(self.bound)):
+
+            m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action,i) \
+                                    for state in state_list for action in self.model.actions(state)) + \
+                        gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal,i) for goal in goal_list)
+                        <= self.bound[i])
 
 
         for state in state_list:
@@ -438,15 +483,30 @@ class IDUAL(object):
                     out_var_dict[state] == in_var_dict[state])
             
 
+        # m.addConstr(
+        #     1 == gp.quicksum(in_var_dict[goal] for goal in goal_list))
+
+
         m.addConstr(
-            1 == gp.quicksum(in_var_dict[goal] for goal in goal_list))
+            0.9 <= gp.quicksum(in_var_dict[goal] for goal in goal_list))
+
+        m.addConstr(
+            1.1 >= gp.quicksum(in_var_dict[goal] for goal in goal_list))
 
 
         
-        m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
-                                for state in state_list for action in self.model.actions(state)) + \
-                    gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
-                    <= self.bound[0])
+        # m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action) \
+        #                         for state in state_list for action in self.model.actions(state)) + \
+        #             gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal) for goal in goal_list)
+        #             <= self.bound[0])
+
+        for i in range(len(self.bound)):
+
+            m.addConstr(gp.quicksum(state_var_dict[state][action]*self.secondary_cost(state,action,i) \
+                                    for state in state_list for action in self.model.actions(state)) + \
+                        gp.quicksum(in_var_dict[goal]*self.secondary_heuristic(goal,i) for goal in goal_list)
+                        <= self.bound[i])
+
 
 
         # for state in state_list:
@@ -523,19 +583,84 @@ class IDUAL(object):
         return 0.0
 
 
+    # def primary_cost(self, state, action):
+    #     cost_1, cost_2 = self.model.cost(state,action)
+    #     return cost_1
+
+    # def secondary_cost(self, state, action):
+    #     cost_1, cost_2 = self.model.cost(state,action)
+    #     return cost_2
+
+
+    # def primary_heuristic(self, state):
+    #     heuristic_1, heuristic_2 = self.model.heuristic(state)
+    #     return heuristic_1
+
+    # def secondary_heuristic(self, state):
+    #     heuristic_1, heuristic_2 = self.model.heuristic(state)
+    #     return heuristic_2
+
+
     def primary_cost(self, state, action):
         cost_1, cost_2 = self.model.cost(state,action)
         return cost_1
 
-    def secondary_cost(self, state, action):
+    def secondary_cost(self, state, action, num):
         cost_1, cost_2 = self.model.cost(state,action)
-        return cost_2
+
+        if num==0:
+            return cost_2
 
 
     def primary_heuristic(self, state):
         heuristic_1, heuristic_2 = self.model.heuristic(state)
         return heuristic_1
 
-    def secondary_heuristic(self, state):
+    def secondary_heuristic(self, state, num):
         heuristic_1, heuristic_2 = self.model.heuristic(state)
-        return heuristic_2
+
+        if num==0:
+            return heuristic_2
+
+    
+
+    # def primary_cost(self, state, action):
+    #     cost_1, cost_2, cost_3, cost_4, cost_5, cost_6, cost_7 = self.model.cost(state,action)
+    #     return cost_1
+
+    # def secondary_cost(self, state, action, num):
+    #     cost_1, cost_2, cost_3, cost_4, cost_5, cost_6, cost_7 = self.model.cost(state,action)
+
+    #     if num==0:
+    #         return cost_2
+    #     elif num==1:
+    #         return cost_3
+    #     elif num==2:
+    #         return cost_4
+    #     elif num==3:
+    #         return cost_5
+    #     elif num==4:
+    #         return cost_6
+    #     elif num==5:
+    #         return cost_7
+
+
+    # def primary_heuristic(self, state):
+    #     heuristic_1, heuristic_2, heuristic_3, heuristic_4, heuristic_5, heuristic_6, heuristic_7 = self.model.heuristic(state)
+    #     return heuristic_1
+
+    # def secondary_heuristic(self, state, num):
+    #     heuristic_1, heuristic_2, heuristic_3, heuristic_4, heuristic_5, heuristic_6, heuristic_7 = self.model.heuristic(state)
+
+    #     if num==0:
+    #         return heuristic_2
+    #     elif num==1:
+    #         return heuristic_3
+    #     elif num==2:
+    #         return heuristic_4
+    #     elif num==3:
+    #         return heuristic_5
+    #     elif num==4:
+    #         return heuristic_6
+    #     elif num==5:
+    #         return heuristic_7

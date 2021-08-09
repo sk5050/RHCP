@@ -444,8 +444,9 @@ def compute_racetrack_traj_check():
 
     ## temporarily add "traj_check_dict" in racetrack model property, and add bresenham's result.
 
-    map_file = "models/racetrack_simple.txt"
-    init_state = (1,2,0,0)
+    map_file = "models/racetrack_ring.txt"
+    # init_state = (1,2,0,0)
+    init_state = (1,23,0,0)
     model = RaceTrackModel(map_file, init_state=init_state, slip_prob=0.1)
 
     alpha = [0.0]
@@ -455,7 +456,7 @@ def compute_racetrack_traj_check():
 
     algo.expand_all()
 
-    with open('models/racetrack_simple_traj_check_dict.json', 'w') as outfile:
+    with open('models/racetrack_ring_traj_check_dict.json', 'w') as outfile:
         json.dump(model.traj_check_dict, outfile)
     
 
@@ -463,8 +464,9 @@ def compute_racetrack_traj_check():
 
 def compute_racetrack_heuristic():
 
-    map_file = "models/racetrack_simple.txt"
-    init_state = (1,2,0,0)
+    map_file = "models/racetrack_ring.txt"
+    # init_state = (1,2,0,0)
+    init_state = (1,23,0,0)
     model = RaceTrackModel(map_file, init_state = init_state,slip_prob=0.1)
 
     algo = VI(model,constrained=False,VI_epsilon=1e-5)
@@ -474,7 +476,7 @@ def compute_racetrack_heuristic():
 
     print(len(heuristic))
 
-    with open('models/racetrack_simple_heuristic.json', 'w') as outfile:
+    with open('models/racetrack_ring_heuristic.json', 'w') as outfile:
         json.dump(heuristic, outfile)
 
     
@@ -994,12 +996,12 @@ def test_dual_alg_racetrack1():
 def test_dual_alg_routing():
 
 
-    init_state = ((0,0),(5,5))
-    size = (10,10)
-    goal = (9,9)
+    init_state = ((0,0),(3,1))
+    size = (12,12)
+    goal = (5,5)
     model = ROUTINGModel(size, init_state, goal, prob_right_transition=0.8)
 
-    bound = 1 
+    bound = 2
 
 
 
@@ -1011,28 +1013,28 @@ def test_dual_alg_routing():
 
     # policy = cssp_solver.algo.extract_policy()
 
-    # cssp_solver.candidate_pruning = True
+    cssp_solver.candidate_pruning = True
 
-    # try:
-    #     cssp_solver.incremental_update(2)
-    # except:
+    try:
+        cssp_solver.incremental_update(10)
+    except:
 
-    #     k_best_solution_set = cssp_solver.k_best_solution_set
-    #     for solution in k_best_solution_set:
-    #         print("-"*20)
-    #         print(solution[0])
-    #         print(solution[1])
+        k_best_solution_set = cssp_solver.k_best_solution_set
+        for solution in k_best_solution_set:
+            print("-"*20)
+            print(solution[0])
+            print(solution[1])
 
-    #     print(time.time() - t)
+        print(time.time() - t)
 
-    #     print(cssp_solver.anytime_solutions)
+        print(cssp_solver.anytime_solutions)
 
 
-    # k_best_solution_set = cssp_solver.k_best_solution_set
-    # for solution in k_best_solution_set:
-    #     print("-"*20)
-    #     print(solution[0])
-    #     print(solution[1])
+    k_best_solution_set = cssp_solver.k_best_solution_set
+    for solution in k_best_solution_set:
+        print("-"*20)
+        print(solution[0])
+        print(solution[1])
 
     print(time.time() - t)
 

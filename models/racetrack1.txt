@@ -4,11 +4,11 @@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   @
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   @
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   @
+@s                   xxxxxxxxxxxx   @
+@s                   xxxxxxxxxxxx   @
 @s                                  @
 @s                                  @
-@s                                  @
-@s                                  @
-@@@@@                               @
-@@@@@@@@@                           @
-@@@@@@@@@@@@@                       @
+@@@@@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@
+@@@@@@@@@xxxxxxxxxxxxxxxxxxxxxxxxxxx@
+@@@@@@@@@@@@@xxxxxxxxxxxxxxxxxxxxxxx@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
